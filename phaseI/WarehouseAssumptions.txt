@@ -1,0 +1,57 @@
+Refuge prioritization project - Data filters and warehouse assumptions
+
+
+
+We created a sampling effort file for all survey events where the species of interest could be detected. 
+The sampling effort file was then merged with the observations file (separately for each species and data type) 
+and 0's added for locations and events with no detections of the species of interest.
+
+The following filters were applied:
+* Only considering surveys in CA, NV and OR; for RIRA we added AZ to the range, and for WIFL we added AZ and NM 
+* Only using data with correct geospatial information (Lat/Lon)
+* eBird filter: Only using eBird-approved surveys (APPROVED = 1)
+* eBird filter: Only considering the following survey protocol types: 'eBird - Exhaustive Area Count', 
+	'eBird - Traveling Count', 'eBird - Stationary Count', 'EBIRD', 'Audubon NWR Protocol', 'EBIRD_CA', and 
+	'TNC California Waterbird Count'
+* Observation data consist the maximum of counts (for each species separately) for each survey event identifier 
+	(this avoids so-called "group count" problems with eBird)
+* BBS data constraint: only data from 1996 onward were used
+* Data are then attributed with FWS region and PADUS information, and also with CA state park boundary 
+	information, CDFW owned and operated lands, FWS lands approved for acquisition and FWS lands of interest
+* Final warehouse filter: Only R8 data (or R8 & R2 data, for WIFL and RIRA) were used
+
+Once the warehouse is created, the query that asks for data also executes an additional filter: region of interest.
+This last filter is just an intersect with an arcGIS polygon file. Data within the polygon are returned and plotted.
+
+The final warehouse has data from all species of interest and all data sources (eBird, BBS, CADC, secretive 
+marshbird, TRBL database), and the following fields:
+	SpeciesCode - unique species ID 
+	Lat - Decimal latitude (wgs84)
+	Lon	- Decimal longitude (wgs84)
+	obsDate - Observation date, or more appropriately,date of survey (POSIXct)
+	padus - Attribution from the PADUS database (one of several federal land ownership types, including types of public lands)
+	caState - California state park boundary attribution 
+	cdfw - CDFW land ownership attribution 
+	fwsAppr - FWS land approved for acquisition?
+	fwsIntStatus - FWS land of interest? If so, its status
+	fwsIntName - FWS land of interest? If so, its name
+	month - The month when the survey occurred
+	season - The general season when survey occurred, but see below for custom season attribution
+	
+We apply a general season label:
+	April to August [inclusive] = "S"
+	October to February [incl.] = "W"
+	September and March = "O"
+	
+But note that the warehouse has both the observation date and the month, so breeding season filters can be 
+customized by species.
+
+Need to include data source and protocol in warehouse to filter these out if needed
+Evaluate multi-process approach: hurdle.
+Use a logistic model for low-count species, and negbin link for more abundant species
+Because in many cases all we have is presence-absence data, we should fit a logistic model and a rate model and compare results wrt refuge importance for both
+We may want to collapse the data to include only one event per cell per day (so include date in wh)
+
+
+
+
