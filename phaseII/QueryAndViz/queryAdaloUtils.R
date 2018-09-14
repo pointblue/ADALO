@@ -32,7 +32,7 @@ makeQuestion<-function(by="region",metric=4,period=NA,species,padusCat=NA,catVal
 			}
 			filtvals<-paste(filts,collapse=" OR ")
 		}
-		poisql<-paste0("select ",padusCat,",padusObjId from padusCats where ",filtvals)
+		poisql<-paste0("select ",padusCat,",padusObjId from paduscats where ",filtvals)
 		doidf<-sqlQuery(conn,poisql)
 		doidf<-aggManyNames(doidf,mnames=catValues)
 	}
@@ -75,7 +75,7 @@ makeQuestion<-function(by="region",metric=4,period=NA,species,padusCat=NA,catVal
 # reportAreaSurv	Boolean indicating if to include %AreaSurveyed in the return. Default TRUE. If the request is a comparison between a unit and a geopolitical, set to FALSE
 getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,filtPeriod=NA,geopolField=NA,geopolValue=NA,reportAreaSurv=TRUE){
 	if(metricVal %in% c(4,5,6,7)){
-		baseintq<-"select * from baseIntersects"
+		baseintq<-"select * from baseintersects"
 		if(is.data.frame(doidf)){
 			poids<-paste(doidf$padusObjId,collapse=",")
 			baseintq<-paste(baseintq," where padusObjId in (",poids,")",sep="")
