@@ -6,7 +6,7 @@
 
 library(RODBC); library(ggplot2); library(plyr)
 
-source("C:/Users/Public/ADALO/phaseII/QueryAndViz/queryAdaloUtils.R")
+source("/home/adalouser/ADALO/phaseII/QueryAndViz/queryAdaloUtils.R")
 ###########################################################################################
 ##################  Make a question for the ADALO tool  ###################################
 ###########################################################################################

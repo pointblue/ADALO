@@ -1,0 +1,63 @@
+How to fire up an Rstudio server with the ADALO app installed
+
+The following should be straightforward
+1) Launch an ubuntu 16.04 server with 30 GB of disk (can be the free tier)
+2) update and upgrade the install
+3) install mysql-server and mysql-client
+4) create a user called adalo with all privs on all connections, and pwd Kr@kat0a=
+	create database adalo
+5) install unixodbc
+
+The debian ubuntu server comes with openssl-1.0 and we need openssl-1.1
+6) remove the current version: sudo apt-get purge --auto-remove openssl
+7) install version 1.1 from source:
+	sudo su -
+	cd /home/ubuntu
+	wget https://www.openssl.org/source/openssl-1.1.0f.tar.gz
+	tar xzvf openssl-1.1.0f.tar.gz
+	cd openssl-1.1.0f
+	./config -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)'
+	make
+	sudo make install
+
+	openssl version -a
+
+8) install the mysql-odbc driver. Instructions here:
+	https://dev.mysql.com/doc/connector-odbc/en/connector-odbc-installation-binary-unix-tarball.html
+	NOTE that running the library registration may not work. That's OK so long you know where the drivers ended, because...
+9) Edit /etc/odbcinst.ini to have the following entry:
+	[MySQL]
+	Description = ODBC for MySQL
+	Driver = /path/to/library/libmyodbc5a.so
+	Setup = /path/to/library/libodbcmyS.so
+	FileUsage = 1 
+10) Edit /etc/odbc.ini to have the DSN entry:
+	[whadalo]
+	Description           = MySQL connection to  database
+	Driver                = MySQL
+	Database              = mydb
+	Server                = localhost
+	User                  = adalo
+	Password              = Kr@kat0a=
+	Port                  = 3306
+	Socket                = /var/run/mysqld/mysqld.sock
+11) Test the odbc connection:
+	echo "select 1" | isql -v my-connector
+
+The rest should be straightforward
+12) Install R, and the following libraries: RODBC, ggplot2, plyr
+	test... library(RODBC);x<-odbcConnect("whadalo");x
+14) Install Rstudio. Instructions here: https://www.rstudio.com/products/rstudio/download-server/
+15) Add adalouser to the machine
+	useradd -m adalouser
+	passwd adalouser 
+	NOte: use the password g3tAdal0
+16) Add the ADALO code files to the adalouser folders
+	In the ubuntu bash, clone the git repo into /home/adalouser
+	
+	
+	adalo  in ubuntu
+mysql root pwd is &p
+user adalo pwd is Kr@kat0a=
+	
+	
