@@ -34,7 +34,7 @@ makeQuestion<-function(by="region",metric=4,period=NA,species,padusCat=NA,catVal
 		}
 		poisql<-paste0("select ",padusCat,",padusObjId from paduscats where ",filtvals)
 		doidf<-sqlQuery(conn,poisql)
-		doidf<-aggManyNames(doidf,mnames=catValues)
+		doidf<-aggManyNames(doidf,mcat=padusCat,mnames=catValues)
 	}
 	
 	
@@ -47,7 +47,7 @@ makeQuestion<-function(by="region",metric=4,period=NA,species,padusCat=NA,catVal
 	domdf<-data.frame()
 	for(ss in species){
 		if(nrow(doidf)>0){
-			dfpad<-getValuesByMetric(spcd=tolower(ss),metricVal=metric,doidf=doidf,conn=conn,filtPeriod=period,reportAreaSurv=reAS)
+			dfpad<-getValuesByMetric(spcd=tolower(ss),metricVal=metric,doidf=doidf,,padusCat=padusCat,conn=conn,filtPeriod=period,reportAreaSurv=reAS)
 			domdf<-rbind(domdf,dfpad)
 		}
 		if(!is.na(geopolCat) && !is.na(geopolValues) && NROW(geopolCat)==1){
@@ -69,11 +69,12 @@ makeQuestion<-function(by="region",metric=4,period=NA,species,padusCat=NA,catVal
 # spcd 				The speciescode
 # metricVal 		The metric to use: 4, 5 or 6
 # doidf 			The dataframe with the padus ObjectIds of the PADUS Domain Of Interest.
+# padusCat			If providing doidf, need to name the padusCategory to use
 # filtPeriod		Integer telling the period to consider: winter (0) or breeding (1)
 # geopolField 		Names one of the geopolitical domains to query for data: USFWSregion, USFSregion, NPSregion, LCCregion, USJVregion, BCRregion, StateFIPS, or CountyFIPS
 # geopolValue 		The value to filter for the geopolField (e.g., 6 or 8 for USFWSregion) - this is an integer
 # reportAreaSurv	Boolean indicating if to include %AreaSurveyed in the return. Default TRUE. If the request is a comparison between a unit and a geopolitical, set to FALSE
-getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,filtPeriod=NA,geopolField=NA,geopolValue=NA,reportAreaSurv=TRUE){
+getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,padusCat=NA,filtPeriod=NA,geopolField=NA,geopolValue=NA,reportAreaSurv=TRUE){
 	if(metricVal %in% c(4,5,6,7)){
 		baseintq<-"select * from baseintersects"
 		if(is.data.frame(doidf)){
@@ -112,10 +113,10 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,filtPeriod=NA,geopolFie
 		if(nrow(df)>0){
 			if(is.data.frame(doidf)){
 				df<-merge(df,doidf,by="padusObjId",all.x=T)
-				tcells<-aggregate(ncells~unitName,df,sum,na.rm=T)
-				tdf<-aggregate(cellMetric~unitName,df,mean,na.rm=T)
+				tcells<-aggregate(as.formula(paste0("ncells~",padusCat)),df,sum,na.rm=T)
+				tdf<-aggregate(as.formula(paste0("cellMetric~",padusCat)),df,mean,na.rm=T)
 				names(tdf)<-gsub("cellMetric","estDensity",names(tdf))
-				resdf<-merge(tdf,tcells,by="unitName")
+				resdf<-merge(tdf,tcells,by=padusCat)
 				resdf$estAbundance<-resdf$estDensity*resdf$ncells
 				resdf$estAbundance<-ceiling(resdf$estAbundance/1089)
 				resdf$estDensity<-resdf$estDensity/98.01	#reporting values by hectare
@@ -123,15 +124,15 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,filtPeriod=NA,geopolFie
 				if(metricVal==4){
 					nc5<-sqlQuery(conn,baseintq)
 					ncdf<-merge(nc5,doidf,by="padusObjId",all.x=T)
-					ncells5<-aggregate(ncells~unitName,ncdf,sum,na.rm=T)
+					ncells5<-aggregate(as.formula(paste0("ncells~",padusCat)),ncdf,sum,na.rm=T)
 					names(ncells5)<-gsub("ncells","totalcells",names(ncells5))
-					resdf<-merge(resdf,ncells5[,c("unitName","totalcells")],by="unitName",all.x=T)
+					resdf<-merge(resdf,ncells5[,c(padusCat,"totalcells")],by=padusCat,all.x=T)
 					resdf$percAreaSurveyed<-round(resdf$ncells*100/resdf$totalcells)
 				}else{
 					resdf$totalcells<-resdf$ncells
 					resdf$percAreaSurveyed<-100
 				}
-				names(resdf)<-gsub("unitName","Region",names(resdf))
+				names(resdf)<-gsub(padusCat,"Region",names(resdf))
 				resdf<-resdf[,which(!names(resdf) %in% "totalcells")]
 				if(reportAreaSurv==FALSE){
 					resdf<-resdf[,which(!names(resdf) %in% "percAreaSurveyed")]
@@ -152,12 +153,13 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,filtPeriod=NA,geopolFie
 ## This functions consolidates several names for the same unit under a single name. These several names are returned from a "like" query 
 ## (example: Valentine NWR, Valentine NWR I, Valentine NWR II, Valentine NWR III, and Valentine NWR IV all exist in PADUS)
 # doidf 	The padus objects dataframe to simplify
+# mcat		The padus category that contains the names to simplify
 # mnames 	A character string with the names to simplify to
-aggManyNames<-function(doidf,mnames){
+aggManyNames<-function(doidf,mcat,mnames){
 	sdf<-data.frame()
 	for(nn in mnames){
-		tdf<-subset(doidf,grepl(nn,unitName))
-		tdf$unitName<-nn
+		tdf<-subset(doidf,grepl(nn,doidf[,mcat]))
+		tdf[,mcat]<-nn
 		sdf<-rbind(sdf,tdf)
 	}
 	return(sdf)
