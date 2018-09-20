@@ -296,7 +296,7 @@ getDictionary<-function(species=FALSE,padus=TRUE,jurisdiction=FALSE){
 		jurisdf<-rbind(fws,usfs);jurisdf<-rbind(jurisdf,nps);jurisdf<-rbind(jurisdf,lcc);jurisdf<-rbind(jurisdf,usjv);jurisdf<-rbind(jurisdf,bcr)
 		dict$jurisdiction<-jurisdf
 	}
-	odbcClode(conn)
+	odbcClose(conn)
 	return(dict)
 }
 
