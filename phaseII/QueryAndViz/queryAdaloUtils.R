@@ -261,12 +261,12 @@ makeContrast<-function(by="region",domdf,reportAreaSurv=TRUE){
 }
 
 ## This function lists the dictionary of padus categories, or the dictionary of jurisdictions, or the dictionary of species and metrics
-# conn			The connection to whadalo
 # species		If true, it lists the species and metric values
 # padus			If true, it lists the padus categories dictionary
 # jurisdiction	If true, it lists the jurisdictions' dictionary
-getDictionary<-function(conn,species=FALSE,padus=TRUE,jurisdiction=FALSE){
+getDictionary<-function(species=FALSE,padus=TRUE,jurisdiction=FALSE){
 	dict<-list()
+	conn<-odbcConnect("whadalo")
 	if(species==TRUE){
 		spdf<-data.frame()
 		spcd<-c("bais","blra","bobo","buow","canv","cclo","feha","lbcu","lete","mago","mopl","nopi","rira","sacr","snpl","sppi","trbl","wifl")
@@ -296,6 +296,7 @@ getDictionary<-function(conn,species=FALSE,padus=TRUE,jurisdiction=FALSE){
 		jurisdf<-rbind(fws,usfs);jurisdf<-rbind(jurisdf,nps);jurisdf<-rbind(jurisdf,lcc);jurisdf<-rbind(jurisdf,usjv);jurisdf<-rbind(jurisdf,bcr)
 		dict$jurisdiction<-jurisdf
 	}
+	odbcClode(conn)
 	return(dict)
 }
 
