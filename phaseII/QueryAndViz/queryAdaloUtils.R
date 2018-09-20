@@ -19,18 +19,28 @@
 # catValues			The PADUS values to contrast
 # geopolCat 		Names one of the geopolitical domains to query for data: USFWSregion, USFSregion, NPSregion, LCCregion, USJVregion, BCRregion, StateFIPS, or CountyFIPS
 # geopolValues 		The values to filter for the geopolField (e.g., 6 or 8 for USFWSregion) - this is an integer
-makeQuestion<-function(by="region",metric=4,period=NA,species,padusCat=NA,catValues=NA,geopolCat=NA,geopolValues=NA){
+# geopolRestrict	A boolean indicating that the question is restricted to the domain defined by the geopolCats
+makeQuestion<-function(by="region",metric=4,period=NA,species,padusCat=NA,catValues=NA,geopolCat=NA,geopolValues=NA,geopolRestrict=TRUE){
 	conn<-odbcConnect("whadalo")
 	doidf<-data.frame()
 	if(!is.na(padusCat) && !is.na(catValues) && NROW(padusCat)==1){
 		if(NROW(catValues)==1){
-			filtvals<-paste0(padusCat," like '%",catValues,"%'")
+			filtvals<-paste0("(",padusCat," like '%",catValues,"%')")
 		}else{
 			filts<-character()
 			for(vv in catValues){
-				filts<-c(filts,paste0("(",padusCat," like '%",vv,"%')"))
+				filts<-c(filts,paste0(padusCat," like '%",vv,"%'"))
 			}
-			filtvals<-paste(filts,collapse=" OR ")
+			filtvals<-paste0("(",filts,collapse=" OR ",")")
+		}
+		#Here filter for the encompassing domain if geopolCats are provided
+		if(geopolRestrict==TRUE && !is.na(geopolCat) && !is.na(geopolValues)){
+			filtvals<-paste0("(",filtvals,")")
+			#padusObjId in the subset of objectIds defined by the restriction
+			restsql<-paste0("select distinct padusObjId from baseintersects where ",geopolCat, " in (",paste(geopolValues,collapse=","),")")
+			restdf<-sqlQuery(conn,restsql)
+			restvals<-paste(restdf$padusObjId,collapse=",")
+			filtvals<-paste0(filtvals," AND (padusObjId in (",restvals,"))")
 		}
 		poisql<-paste0("select ",padusCat,",padusObjId from paduscats where ",filtvals)
 		doidf<-sqlQuery(conn,poisql)
@@ -47,7 +57,7 @@ makeQuestion<-function(by="region",metric=4,period=NA,species,padusCat=NA,catVal
 	domdf<-data.frame()
 	for(ss in species){
 		if(nrow(doidf)>0){
-			dfpad<-getValuesByMetric(spcd=tolower(ss),metricVal=metric,doidf=doidf,,padusCat=padusCat,conn=conn,filtPeriod=period,reportAreaSurv=reAS)
+			dfpad<-getValuesByMetric(spcd=tolower(ss),metricVal=metric,doidf=doidf,padusCat=padusCat,conn=conn,filtPeriod=period,reportAreaSurv=reAS)
 			domdf<-rbind(domdf,dfpad)
 		}
 		if(!is.na(geopolCat) && !is.na(geopolValues) && NROW(geopolCat)==1){
@@ -159,8 +169,10 @@ aggManyNames<-function(doidf,mcat,mnames){
 	sdf<-data.frame()
 	for(nn in mnames){
 		tdf<-subset(doidf,grepl(nn,doidf[,mcat]))
-		tdf[,mcat]<-nn
-		sdf<-rbind(sdf,tdf)
+		if(nrow(tdf)>0){
+			tdf[,mcat]<-nn
+			sdf<-rbind(sdf,tdf)
+		}
 	}
 	return(sdf)
 }
