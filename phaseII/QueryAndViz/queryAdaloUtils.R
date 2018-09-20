@@ -260,4 +260,44 @@ makeContrast<-function(by="region",domdf,reportAreaSurv=TRUE){
 	return(reslst)
 }
 
+## This function lists the dictionary of padus categories, or the dictionary of jurisdictions, or the dictionary of species and metrics
+# conn			The connection to whadalo
+# species		If true, it lists the species and metric values
+# padus			If true, it lists the padus categories dictionary
+# jurisdiction	If true, it lists the jurisdictions' dictionary
+getDictionary<-function(conn,species=FALSE,padus=TRUE,jurisdiction=FALSE){
+	dict<-list()
+	if(species==TRUE){
+		spdf<-data.frame()
+		spcd<-c("bais","blra","bobo","buow","canv","cclo","feha","lbcu","lete","mago","mopl","nopi","rira","sacr","snpl","sppi","trbl","wifl")
+		for(ss in spcd){
+			sqlq<-paste("select distinct period, metric from",ss)
+			tmp<-sqlQuery(conn,sqld)
+			tmp$Species<-ss
+			spdf<-rbind(spdf,tmp[,c("Species","period","metric")])
+		}
+		dict$speciesDict<-spdf
+	}
+	if(padus==TRUE){
+		sqlq<-"select * from paduscatslookup"
+		padusdf<-sqlQuery(conn,sqlq)
+		dict$padus<-padusdf
+	}
+	if(jurisdiction==TRUE){
+		fws<-data.frame(Jurisdiction=rep("FWS",2),Value=c(6,8),Description=c("FWS Region 6 (Mountain-Prairie)","FWS Region 8 (Pacific Southwest)"))
+		usfs<-data.frame(Jurisdiction=rep("USFS",5),Value=c(1,2,4,5,6),Description=c("USFS Region 1 (Northern)","USFS Region 2 (Rocky Mountain)","USFS Region 4 (Intermountain)","USFS Region 5 (Pacific Southwest)","USFS Region 6 (Pacific Northwest"))
+		nps<-data.frame(Jurisdiction=rep("NPS",3),Value=c(1,2,3),Description=c("NPS Region Midwest","NPS Region Intermountain","NPS Region Pacific West"))
+		lcc<-data.frame(Jurisdiction=rep("LCC",9),Value=c(2,3,4,5,6,7,11,13,15),Description=c("California LCC","Desert LCC","Eastern Tallgrass Prairie and Big Rivers LCC","Great Basin LCC","Great Northern LCC",
+						"Great Plans LCC","North Pacific LCC","Plains and Prairie Potholes LCC","Southern Rockies LCC"))
+		usjv<-data.frame(Jurisdiction=rep("USJV",11),Value=c(3,4,5,6,8,9,10,12,16,19,21),Description=c("Pacific Coast","Prairie Pothole","Upper Mississippi River/Great Lakes Region","Northern Great Plains",
+						"Playa Lakes","Central Valley Habitat","Rainwater Basin","Sonoran","Intermountain West","Canadian Intermountain","San Francisco Bay"))
+		bcr<-data.frame(Jurisdiction=rep("BCR",11),Value=c(5,9,10,11,15,16,17,18,19,32,33),Description=c("NORTHERN_PACIFIC_RAINFOREST","GREAT_BASIN","NORTHERN_ROCKIES","PRAIRIE_POTHOLES",
+						"SIERRA_NEVADA","SOUTHERN_ROCKIES/COLORADO_PLATEAU","BADLANDS_AND_PRAIRIES","SHORTGRASS_PRAIRIE","CENTRAL_MIXED_GRASS_PRAIRIE","COASTAL_CALIFORNIA","SONORAN_AND_MOJAVE_DESERTS"))
+		jurisdf<-rbind(fws,usfs);jurisdf<-rbind(jurisdf,nps);jurisdf<-rbind(jurisdf,lcc);jurisdf<-rbind(jurisdf,usjv);jurisdf<-rbind(jurisdf,bcr)
+		dict$jurisdiction<-jurisdf
+	}
+	return(dict)
+}
+
+
 

@@ -4,16 +4,19 @@ The following should be straightforward
 1) Launch an ubuntu 16.04 server with 30 GB of disk (can be the free tier)
 2) update and upgrade the install
 3) install mysql-server and mysql-client
-4) create a user called adalo with all privs on all connections, and pwd Kr@kat0a=
+4) create a user called adalouser with all privs on all connections, and pwd Kr@kat0a=
 	create database adalo
-5) install unixodbc
+5) install unixodbc*
 
 The debian ubuntu server comes with openssl-1.0 and we need openssl-1.1
 6) remove the current version: sudo apt-get purge --auto-remove openssl
+
+CAREFUL: you may need to install make and gcc
+
 7) install version 1.1 from source:
 	sudo su -
 	cd /home/ubuntu
-	wget https://www.openssl.org/source/openssl-1.1.0f.tar.gz
+	wget https://www.openssl.org/source/openssl-1.1.0f.tar.gz --no-check-certificate
 	tar xzvf openssl-1.1.0f.tar.gz
 	cd openssl-1.1.0f
 	./config -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)'
@@ -35,14 +38,14 @@ The debian ubuntu server comes with openssl-1.0 and we need openssl-1.1
 	[whadalo]
 	Description           = MySQL connection to  database
 	Driver                = MySQL
-	Database              = mydb
+	Database              = adalo
 	Server                = localhost
 	User                  = adalo
 	Password              = Kr@kat0a=
 	Port                  = 3306
 	Socket                = /var/run/mysqld/mysqld.sock
 11) Test the odbc connection:
-	echo "select 1" | isql -v my-connector
+	echo "select 1" | isql -v whadalo
 
 The rest should be straightforward
 12) Install R, and the following libraries: RODBC, ggplot2, plyr
