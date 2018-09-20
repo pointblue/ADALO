@@ -66,4 +66,9 @@ res$tblabun
 subset(res$tblabun,Area=="USFWSregion 8",select="canv")
 subset(reserr$rawdata,Area=="USFWSregion 8",select="estAbundance")
 
+# Here is an example that does not enforce the domain:
+# Q6: compare San Pablo Bay vs the entire R6 for canv over winter.
+res<-makeQuestion(by="area",metric=4,period=0,species="canv",padusCat="unitName",catValues=c('San Pablo Bay National Wildlife Refuge'),geopolCat="USFWSregion",geopolValues=6,geopolRestrict=FALSE)
+res$tbldens; res$pltdens
+
 
