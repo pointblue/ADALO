@@ -272,7 +272,7 @@ getDictionary<-function(species=FALSE,padus=TRUE,jurisdiction=FALSE){
 		spcd<-c("bais","blra","bobo","buow","canv","cclo","feha","lbcu","lete","mago","mopl","nopi","rira","sacr","snpl","sppi","trbl","wifl")
 		for(ss in spcd){
 			sqlq<-paste("select distinct period, metric from",ss)
-			tmp<-sqlQuery(conn,sqld)
+			tmp<-sqlQuery(conn,sqlq)
 			tmp$Species<-ss
 			spdf<-rbind(spdf,tmp[,c("Species","period","metric")])
 		}
