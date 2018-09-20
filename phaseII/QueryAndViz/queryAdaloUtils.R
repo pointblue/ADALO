@@ -11,7 +11,7 @@
 
 # This is the main function to ask the questions. It is the function that defines the kinds of questions you can ask. 
 # Arguments of the function --
-# by 				Either species or region (default), indicating that either different species or different regions will make the rows of the output table
+# by 				Either species or area (default), indicating that either different species or different areas will make the rows of the output table
 # metric			An integer: 4 (empirical), 5 (ADALO sdm), 6 (HAPET sdm) or 7 (POINT BLUE sdm). Defaults to empirical (4)
 # period			Either NA, 0 or 1 (all, winter or breeding, respectively). Defaults to all
 # species			Mandatory; a vector of one or more species to consider for the comparisons
@@ -20,7 +20,7 @@
 # geopolCat 		Names one of the geopolitical domains to query for data: USFWSregion, USFSregion, NPSregion, LCCregion, USJVregion, BCRregion, StateFIPS, or CountyFIPS
 # geopolValues 		The values to filter for the geopolField (e.g., 6 or 8 for USFWSregion) - this is an integer
 # geopolRestrict	A boolean indicating that the question is restricted to the domain defined by the geopolCats
-makeQuestion<-function(by="region",metric=4,period=NA,species,padusCat=NA,catValues=NA,geopolCat=NA,geopolValues=NA,geopolRestrict=TRUE){
+makeQuestion<-function(by="area",metric=4,period=NA,species,padusCat=NA,catValues=NA,geopolCat=NA,geopolValues=NA,geopolRestrict=TRUE){
 	conn<-odbcConnect("whadalo")
 	doidf<-data.frame()
 	if(!is.na(padusCat) && !is.na(catValues) && NROW(padusCat)==1){
@@ -58,12 +58,16 @@ makeQuestion<-function(by="region",metric=4,period=NA,species,padusCat=NA,catVal
 	for(ss in species){
 		if(nrow(doidf)>0){
 			dfpad<-getValuesByMetric(spcd=tolower(ss),metricVal=metric,doidf=doidf,padusCat=padusCat,conn=conn,filtPeriod=period,reportAreaSurv=reAS)
-			domdf<-rbind(domdf,dfpad)
+			if(!is.na(dfpad) && nrow(dfpad)>0){
+				domdf<-rbind(domdf,dfpad)
+			}
 		}
 		if(!is.na(geopolCat) && !is.na(geopolValues) && NROW(geopolCat)==1){
 			for(gg in geopolValues){
 				dfgeo<-getValuesByMetric(spcd=tolower(ss),metricVal=metric,conn=conn,doidf=NA,filtPeriod=period,geopolField=geopolCat,geopolValue=gg)
-				domdf<-rbind(domdf,dfgeo)
+				if(!is.na(dfgeo) && nrow(dfgeo)>0){
+					domdf<-rbind(domdf,dfgeo)
+				}
 			}
 		}
 	}
@@ -142,7 +146,7 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,padusCat=NA,filtPeriod=
 					resdf$totalcells<-resdf$ncells
 					resdf$percAreaSurveyed<-100
 				}
-				names(resdf)<-gsub(padusCat,"Region",names(resdf))
+				names(resdf)<-gsub(padusCat,"Area",names(resdf))
 				resdf<-resdf[,which(!names(resdf) %in% "totalcells")]
 				if(reportAreaSurv==FALSE){
 					resdf<-resdf[,which(!names(resdf) %in% "percAreaSurveyed")]
@@ -151,7 +155,7 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,padusCat=NA,filtPeriod=
 				df$count<-df$ncells*df$cellMetric
 				tcells<-sum(df$ncells,na.rm=T)
 				tmetric<-sum(df$count,na.rm=T)
-				resdf<-data.frame(Region=paste(geopolField,geopolValue),estDensity=tmetric/tcells/1089,ncells=tcells,estAbundance=ceiling(tmetric/1089))
+				resdf<-data.frame(Area=paste(geopolField,geopolValue),estDensity=tmetric/tcells/1089,ncells=tcells,estAbundance=ceiling(tmetric/1089))
 			}
 			resdf$species<-spcd
 			resdf$metric<-metricVal
@@ -190,11 +194,11 @@ replaceNAs<-function(df,defvar){
 }
 
 ## This function converts the raw data into ADALO-type contrasts between species or regions
-# by 				The type of contrast. Valid values: region (same species and period - compare across regions; this is the default), 
-#						or species (same region and period - compare across species)
+# by 				The type of contrast. Valid values: area (same species and period - compare across areas; this is the default), 
+#						or species (same area and period - compare across species)
 # domdf 			The data frame containing the data for which to develop the contrasts
 # reportAreaSurv	Boolean indicating if to include %AreaSurveyed in the return. Default TRUE. If the request is a comparison between a unit and a geopolitical, set to FALSE
-makeContrast<-function(by="region",domdf,reportAreaSurv=TRUE){
+makeContrast<-function(by="area",domdf,reportAreaSurv=TRUE){
 	reslst<-list()
 	if(nrow(domdf)==1){
 		reslst$error<-"The domain data.frame has only 1 row - nothing to contrast"
@@ -206,38 +210,38 @@ makeContrast<-function(by="region",domdf,reportAreaSurv=TRUE){
 		reslst$rawdata<-domdf
 		dataSource<-ifelse(unique(domdf$metric)==4,"Empirical",ifelse(unique(domdf$metric)==5,"Model_ADALO",ifelse(unique(domdf$metric)==6,"Model_HAPET","Model_ECN")))
 		if(reportAreaSurv==TRUE){
-			pltsurv<-ggplot(data=domdf,aes(x=Region,y=percAreaSurveyed)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="% area surveyed")
+			pltsurv<-ggplot(data=domdf,aes(x=Area,y=percAreaSurveyed)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="% area surveyed")
 			if(NROW(unique(domdf$species))>1){
 				ns<-ifelse(NROW(unique(domdf$species))%in% c(2,4),2,3)
 				pltsurv<-pltsurv + facet_wrap(~species,ncol=ns)
 			}
 			reslst$pltsurv<-pltsurv
-			densvars<-c("Region","estDensity","percAreaSurveyed","species")
-			idvarreg<-c("Region","percAreaSurveyed");idvarspp<-c("species","percAreaSurveyed")
-			tblsurv<-reshape(domdf[,c("Region","percAreaSurveyed","species")],idvar=c("Region"),timevar="species",direction="wide")
+			densvars<-c("Area","estDensity","percAreaSurveyed","species")
+			idvarreg<-c("Area","percAreaSurveyed");idvarspp<-c("species","percAreaSurveyed")
+			tblsurv<-reshape(domdf[,c("Area","percAreaSurveyed","species")],idvar=c("Area"),timevar="species",direction="wide")
 			names(tblsurv)<-gsub("percAreaSurveyed.","%Surv_",names(tblsurv))
-			tblsurv<-replaceNAs(df=tblsurv,defvar=c("Region"))
+			tblsurv<-replaceNAs(df=tblsurv,defvar=c("Area"))
 			reslst$tblsurv<-tblsurv
 		}else{
-			densvars<-c("Region","estDensity","species")
-			idvarreg<-c("Region");idvarspp<-c("species")
+			densvars<-c("Area","estDensity","species")
+			idvarreg<-c("Area");idvarspp<-c("species")
 		}
 		
-		if(tolower(by)=="region"){
+		if(tolower(by)=="area"){
 			tbldens<-reshape(domdf[,densvars],idvar=idvarreg,timevar="species",direction="wide")
 			names(tbldens)<-gsub("percAreaSurveyed","%AreaSurveyed",names(tbldens))
 			names(tbldens)<-gsub("estDensity.","",names(tbldens))
-			tblabund<-reshape(domdf[,c("Region","estAbundance","species")],idvar=c("Region"),timevar="species",direction="wide")
+			tblabund<-reshape(domdf[,c("Area","estAbundance","species")],idvar=c("Area"),timevar="species",direction="wide")
 			names(tblabund)<-gsub("estAbundance.","",names(tblabund))
 			tbldens$Source<-dataSource;tblabund$Source<-dataSource
-			tbldens<-replaceNAs(df=tbldens,defvar=c("Region","Source"))
-			tblabund<-replaceNAs(df=tblabund,defvar=c("Region","Source"))
+			tbldens<-replaceNAs(df=tbldens,defvar=c("Area","Source"))
+			tblabund<-replaceNAs(df=tblabund,defvar=c("Area","Source"))
 			
 			reslst$tbldens<-tbldens;reslst$tblabund<-tblabund
 			
-			#make plots for density and abundance, where each bar is a region+period, faceted by species
-			pltdens<-ggplot(data=domdf,aes(x=Region,y=estDensity)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Density (birds/Ha)")
-			pltabun<-ggplot(data=domdf,aes(x=Region,y=estAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Abundance (# birds)")
+			#make plots for density and abundance, where each bar is a Area+period, faceted by species
+			pltdens<-ggplot(data=domdf,aes(x=Area,y=estDensity)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Density (birds/Ha)")
+			pltabun<-ggplot(data=domdf,aes(x=Area,y=estAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Abundance (# birds)")
 			if(NROW(unique(domdf$species))>1){
 				nc<-ifelse(NROW(unique(domdf$species))%in% c(2,4),2,3)
 				pltdens<-pltdens + facet_wrap(~species,ncol=nc,scales="free")
@@ -245,10 +249,10 @@ makeContrast<-function(by="region",domdf,reportAreaSurv=TRUE){
 			}
 			reslst$pltdens<-pltdens; reslst$pltabun<-pltabun
 		}else if(tolower(by)=="species"){
-			tbldens<-reshape(domdf[,densvars],idvar=idvarspp,timevar="Region",direction="wide")
+			tbldens<-reshape(domdf[,densvars],idvar=idvarspp,timevar="Area",direction="wide")
 			names(tbldens)<-gsub("percAreaSurveyed","%AreaSurveyed",names(tbldens))
 			names(tbldens)<-gsub("estDensity.","",names(tbldens))
-			tblabund<-reshape(domdf[,c("Region","estAbundance","species")],idvar=c("species"),timevar="Region",direction="wide")
+			tblabund<-reshape(domdf[,c("Area","estAbundance","species")],idvar=c("species"),timevar="Area",direction="wide")
 			names(tblabund)<-gsub("estAbundance.","",names(tblabund))
 			tbldens$Source<-dataSource;tblabund$Source<-dataSource
 			tbldens<-replaceNAs(df=tbldens,defvar=c("species","Source"))
@@ -256,13 +260,13 @@ makeContrast<-function(by="region",domdf,reportAreaSurv=TRUE){
 			
 			reslst$tbldens<-tbldens;reslst$tblabund<-tblabund
 			
-			#make plots for density and abundance, where each bar is a region+period, faceted by species
+			#make plots for density and abundance, where each bar is a Area+period, faceted by species
 			pltdens<-ggplot(data=domdf,aes(x=species,y=estDensity)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Density (birds/Ha)")
 			pltabun<-ggplot(data=domdf,aes(x=species,y=estAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Abundance (# birds)")
-			if(NROW(unique(domdf$Region))>1){
-				nc<-ifelse(NROW(unique(domdf$Region))%in% c(2,4),2,3)
-				pltdens<-pltdens + facet_wrap(~Region,ncol=nc,scales="free")
-				pltabun<-pltabun + facet_wrap(~Region,ncol=nc,scales="free")
+			if(NROW(unique(domdf$Area))>1){
+				nc<-ifelse(NROW(unique(domdf$Area))%in% c(2,4),2,3)
+				pltdens<-pltdens + facet_wrap(~Area,ncol=nc,scales="free")
+				pltabun<-pltabun + facet_wrap(~Area,ncol=nc,scales="free")
 			}
 			reslst$pltdens<-pltdens; reslst$pltabun<-pltabun
 		}else{
