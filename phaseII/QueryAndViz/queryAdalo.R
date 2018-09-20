@@ -7,6 +7,8 @@
 library(RODBC); library(ggplot2); library(plyr)
 
 source("/home/adalouser/ADALO/phaseII/QueryAndViz/queryAdaloUtils.R")
+
+#source("c:/users/lsalas/git/ADALO/phaseII/QueryAndViz/queryAdaloUtils.R")
 ###########################################################################################
 ##################  Make a question for the ADALO tool  ###################################
 ###########################################################################################
@@ -33,7 +35,7 @@ source("/home/adalouser/ADALO/phaseII/QueryAndViz/queryAdaloUtils.R")
 ## Questions --
 
 # Q1: Compare two regions (SFBNWR vs SacRiverNWR) in importance to a species (CANV during winter)
-res<-makeQuestion(by="region",metric=4,period=0,species="canv",padusCat="unitName",catValues=c('San Pablo Bay National Wildlife Refuge','Sacramento River National Wildlife Refuge'),geopolCat=NA,geopolValues=NA)
+res<-makeQuestion(by="area",metric=4,period=0,species="canv",padusCat="unitName",catValues=c('San Pablo Bay National Wildlife Refuge','Sacramento River National Wildlife Refuge'),geopolCat=NA,geopolValues=NA)
 res$tblabund; res$tblsurv
 res$pltabun; dev.new();res$pltsurv
 
@@ -43,13 +45,25 @@ res$tblabund; res$tblsurv
 res$pltabun; dev.new();res$pltsurv
 
 # Q3: compare this refuge vs a jurisdictional domain - San Pablo Bay vs the rest in Region 8
-res<-makeQuestion(by="region",metric=4,period=0,species="canv",padusCat="unitName",catValues=c('San Pablo Bay National Wildlife Refuge'),geopolCat="USFWSregion",geopolValues=8)
+res<-makeQuestion(by="area",metric=4,period=0,species="canv",padusCat="unitName",catValues=c('San Pablo Bay National Wildlife Refuge'),geopolCat="USFWSregion",geopolValues=8)
 res$tbldens; res$pltdens
 
+# Q3-alt: compare this refuge vs a jurisdictional domain - San Pablo Bay vs the rest in Region 8, but this time for the breeding season (no canv in SPBNWR dring breeding season)
+reserr<-makeQuestion(by="area",metric=4,period=1,species="canv",padusCat="unitName",catValues=c('San Pablo Bay National Wildlife Refuge'),geopolCat="USFWSregion",geopolValues=8)
+reserr$tbldens; reserr$error; reserr$rawdata
+
 # Q4: compare jurisdictions (R6 vs R8) for a species (canv in winter, using metric 5)
-res<-makeQuestion(by="region",metric=5,period=0,species="canv",padusCat=NA,catValues=NA,geopolCat="USFWSregion",geopolValues=c(6,8))
+res<-makeQuestion(by="area",metric=5,period=0,species="canv",padusCat=NA,catValues=NA,geopolCat="USFWSregion",geopolValues=c(6,8))
 res$tbldens; res$pltdens
 res$tblabund; res$pltabun
 
+# Q5: compare a bunch of manager types within FWSregion 8, and vs the entire region 8, for canv during breeding season
+res<-makeQuestion(by="area",metric=4,period=1,species="canv",padusCat="mgrName",
+		catValues=c('FWS','BLM','USFS','NPS','BIA','TRIB','NOAA','USACE','USBR','ARS','DOD','DOE','NRCS','OTHF','JNT','SDC','SDNR','SDOL','SFW','SLB','SPR','OTHS','NGO','CITY','CNTY','REG','RWD','PVT','UNK','UNKL'),
+		geopolCat="USFWSregion",geopolValues=8)
+res$tblabun
+# NOTE that the abundance for R8 is the same calculated in Q3-alt
+subset(res$tblabun,Area=="USFWSregion 8",select="canv")
+subset(reserr$rawdata,Area=="USFWSregion 8",select="estAbundance")
 
 
