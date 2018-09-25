@@ -71,7 +71,7 @@ tm<-Sys.time()
 qq<-addDataToTable(conn=conn,stable=pdobj,dtable="padusCats",charfields=c("mgmtType","mgrName","desType","unitName"))
 Sys.time()-tm
 
-#need a lookup for the mgmtType, mgrName
+#need a lookup for the padusCats
 mtt<-unique(pdobjects[,c("Mang_Type","d_Mang_Typ")]);names(mtt)<-c("categoryCode","codeDescription");mtt$padusCat<-"mgmtType"
 mtn<-unique(pdobjects[,c("Mang_Name","d_Mang_Typ")]);names(mtn)<-c("categoryCode","codeDescription");mtn$padusCat<-"mgrName"
 padCatsLookup<-rbind(mtt,mtn);padCatsLookup<-padCatsLookup[,c("padusCat","categoryCode","codeDescription")]
@@ -83,11 +83,13 @@ Sys.time()-tm
 load("/home/lsalas/adalo/warehouse/basetable.RData")
 basetable<-basetable[,c("intId","pdobjid","USFWSregion","USFSregion","NPSregion","LCCregion","USJVregion","BCRregion","StateFIPS","CountyFIPS","g990cellId","ncells")]
 names(basetable)<-gsub("pdobjid","padusObjId",names(basetable))
+basetable$USFWSregion<-as.integer(as.character(basetable$USFWSregion))
+basetable$USFSregion<-as.integer(as.character(basetable$USFSregion))
+basetable$NPSregion<-as.integer(basetable$NPSregion)
 tm<-Sys.time()
 qq<-addDataToTable(conn=conn,stable=basetable,dtable="baseIntersects",charfields=c("StateFIPS","CountyFIPS"))
 Sys.time()-tm
 odbcClose(conn)
-
 
 #Load the species tables
 spcon<-odbcConnect("adalo")
@@ -101,6 +103,7 @@ for(ss in spp){
 	qq<-addDataToTable(conn=spcon,stable=speciesdf,dtable=ss,charfields="")
 }
 Sys.time()-tm
+odbcClose(spcon)
 
 
 

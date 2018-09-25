@@ -20,13 +20,13 @@ paduscats<-read.csv("//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandM
 q<-unique(paduscats$Own_Name);owndf<-data.frame(OwnerName=c(unique(paduscats$Own_Name),99),Owner=c(as.character(q),"Private"))
 q<-unique(paduscats$Mang_Type);mgmtdf<-data.frame(MgmtType=c(unique(paduscats$Mang_Type),99),Manager=c(as.character(q),"Private"))
 q<-unique(paduscats$Loc_Nm);locdf<-data.frame(LocName=c(unique(paduscats$Loc_Nm),999999),Location=c(as.character(q),"Private"))
-rm5b<-raster("//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/m5raster/CANV_breeding_filtered.tif") #Use CCLO
-rm5w<-raster("//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/m5raster/CANV_winter_filtered.tif")
-stkb<-stack(rm5b,padus);stkbdf<-as.data.frame(stkb)
+rm5b<-raster("C:/Users/lsalas/Dropbox/FWS_I&M/ADALO/breeding/masked_done_by_each_species/masks_tiff_only/canv_mask_01_done1.tif") #Use CCLO
+rm5w<-raster("C:/Users/lsalas/Dropbox/FWS_I&M/ADALO/winter/final_masked_one_percent/CANV_w_filtered_gbm_wGwL_masked_01.tif")
+stkb<-stack(rm5b,padus);stkbdf<-as.data.frame(stkb,stringsAsFactors=F)
 stkbdf$OwnerName<-ifelse(is.na(stkbdf$OwnerName),99,stkbdf$OwnerName)
 stkbdf$LocName<-ifelse(is.na(stkbdf$LocName),999999,stkbdf$LocName)
 stkbdf$MgmtType<-ifelse(is.na(stkbdf$MgmtType),99,stkbdf$MgmtType)
-stkw<-stack(rm5w,padus);stkwdf<-as.data.frame(stkw)
+stkw<-stack(rm5w,padus);stkwdf<-as.data.frame(stkw,stringsAsFactors=F)
 stkwdf$OwnerName<-ifelse(is.na(stkwdf$OwnerName),99,stkwdf$OwnerName)
 stkwdf$LocName<-ifelse(is.na(stkwdf$LocName),999999,stkwdf$LocName)
 stkwdf$MgmtType<-ifelse(is.na(stkwdf$MgmtType),99,stkwdf$MgmtType)
@@ -51,12 +51,13 @@ locn<-unique(df4$LocName)
 
 m5b<-subset(stkbdf,LocName==locn)
 if(nrow(m5b)>0){
-	m5b$Season<-"Breeding";names(m5b)<-gsub("CANV_breeding_filtered","encounterYRate",names(m5b))
+	m5b$Season<-"Breeding"
 }
 m5w<-subset(stkwdf,LocName==locn)
 if(nrow(m5w)>0){
-	m5w$Season<-"Winter";names(m5w)<-gsub("CANV_winter_filtered","encounterYRate",names(m5w))
+	m5w$Season<-"Winter"
 }
+names(m5b)<-c("encounterYRate","LocName","MgmtType","OwnerName","Season"); names(m5w)<-c("encounterYRate","LocName","MgmtType","OwnerName","Season")
 m5df<-rbind(m5b,m5w)
 if(nrow(m5df)>0){
 	m5df<-merge(m5df,locdf,by="LocName",all.x=T)
@@ -85,6 +86,7 @@ m5b<-subset(stkbdf,OwnerName %in% ownn)
 m5b$Season<-"Breeding";names(m5b)<-gsub("CANV_breeding_filtered","encounterYRate",names(m5b))
 m5w<-subset(stkwdf,OwnerName %in% ownn)
 m5w$Season<-"Winter";names(m5w)<-gsub("CANV_winter_filtered","encounterYRate",names(m5w))
+names(m5b)<-c("encounterYRate","LocName","MgmtType","OwnerName","Season"); names(m5w)<-c("encounterYRate","LocName","MgmtType","OwnerName","Season")
 m5df<-rbind(m5b,m5w);m5df<-merge(m5df,owndf,by="OwnerName",all.x=T)
 m5df$Species<-"Canvasback";m5df$Metric<-"Metric 5"
 dat5<-aggregate(as.formula("encounterYRate~Owner+OwnerName+Season+Species+Metric"),data=m5df,FUN=sum)

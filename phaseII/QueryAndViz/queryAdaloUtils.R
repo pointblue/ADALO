@@ -11,7 +11,7 @@
 
 # This is the main function to ask the questions. It is the function that defines the kinds of questions you can ask. 
 # Arguments of the function --
-# by 				Either species or area (default), indicating that either different species or different areas will make the rows of the output table
+# byComp 			Either species or area (default), indicating that either different species or different areas will make the rows of the output table
 # metric			An integer: 4 (empirical), 5 (ADALO sdm), 6 (HAPET sdm) or 7 (POINT BLUE sdm). Defaults to empirical (4)
 # period			Either NA, 0 or 1 (all, winter or breeding, respectively). Defaults to all
 # species			Mandatory; a vector of one or more species to consider for the comparisons
@@ -20,7 +20,7 @@
 # geopolCat 		Names one of the geopolitical domains to query for data: USFWSregion, USFSregion, NPSregion, LCCregion, USJVregion, BCRregion, StateFIPS, or CountyFIPS
 # geopolValues 		The values to filter for the geopolField (e.g., 6 or 8 for USFWSregion) - this is an integer
 # geopolRestrict	A boolean indicating that the question is restricted to the domain defined by the geopolCats
-makeQuestion<-function(by="area",metric=4,period=NA,species,padusCat=NA,catValues=NA,geopolCat=NA,geopolValues=NA,geopolRestrict=TRUE){
+makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catValues=NA,geopolCat=NA,geopolValues=NA,geopolRestrict=TRUE){
 	conn<-odbcConnect("whadalo")
 	doidf<-data.frame()
 	if(!is.na(padusCat) && !is.na(catValues) && NROW(padusCat)==1){
@@ -37,7 +37,12 @@ makeQuestion<-function(by="area",metric=4,period=NA,species,padusCat=NA,catValue
 		if(geopolRestrict==TRUE && !is.na(geopolCat) && !is.na(geopolValues)){
 			filtvals<-paste0("(",filtvals,")")
 			#padusObjId in the subset of objectIds defined by the restriction
-			restsql<-paste0("select distinct padusObjId from baseintersects where ",geopolCat, " in (",paste(geopolValues,collapse=","),")")
+			if(is.numeric(geopolValues)){
+				geopv<-paste0("(",paste(geopolValues,collapse=","),")")
+			}else{
+				geopv<-paste0("('",paste(geopolValues,collapse="','"),"')")
+			}
+			restsql<-paste0("select distinct padusObjId from baseintersects where ",geopolCat, " in ",geopv)
 			restdf<-sqlQuery(conn,restsql)
 			restvals<-paste(restdf$padusObjId,collapse=",")
 			filtvals<-paste0(filtvals," AND (padusObjId in (",restvals,"))")
@@ -74,7 +79,7 @@ makeQuestion<-function(by="area",metric=4,period=NA,species,padusCat=NA,catValue
 	odbcClose(conn)
 	
 	#make constrasts
-	reslst<-makeContrast(by=by,domdf=domdf,reportAreaSurv=reAS)
+	reslst<-makeContrast(byComp=byComp,domdf=domdf,reportAreaSurv=reAS)
 	return(reslst)
 }
 
@@ -194,11 +199,11 @@ replaceNAs<-function(df,defvar){
 }
 
 ## This function converts the raw data into ADALO-type contrasts between species or regions
-# by 				The type of contrast. Valid values: area (same species and period - compare across areas; this is the default), 
+# byComp 			The type of contrast. Valid values: area (same species and period - compare across areas; this is the default), 
 #						or species (same area and period - compare across species)
 # domdf 			The data frame containing the data for which to develop the contrasts
 # reportAreaSurv	Boolean indicating if to include %AreaSurveyed in the return. Default TRUE. If the request is a comparison between a unit and a geopolitical, set to FALSE
-makeContrast<-function(by="area",domdf,reportAreaSurv=TRUE){
+makeContrast<-function(byComp="area",domdf,reportAreaSurv=TRUE){
 	reslst<-list()
 	if(nrow(domdf)==1){
 		reslst$error<-"The domain data.frame has only 1 row - nothing to contrast"
@@ -227,7 +232,7 @@ makeContrast<-function(by="area",domdf,reportAreaSurv=TRUE){
 			idvarreg<-c("Area");idvarspp<-c("species")
 		}
 		
-		if(tolower(by)=="area"){
+		if(tolower(byComp)=="area"){
 			tbldens<-reshape(domdf[,densvars],idvar=idvarreg,timevar="species",direction="wide")
 			names(tbldens)<-gsub("percAreaSurveyed","%AreaSurveyed",names(tbldens))
 			names(tbldens)<-gsub("estDensity.","",names(tbldens))
@@ -248,7 +253,7 @@ makeContrast<-function(by="area",domdf,reportAreaSurv=TRUE){
 				pltabun<-pltabun + facet_wrap(~species,ncol=nc,scales="free")
 			}
 			reslst$pltdens<-pltdens; reslst$pltabun<-pltabun
-		}else if(tolower(by)=="species"){
+		}else if(tolower(byComp)=="species"){
 			tbldens<-reshape(domdf[,densvars],idvar=idvarspp,timevar="Area",direction="wide")
 			names(tbldens)<-gsub("percAreaSurveyed","%AreaSurveyed",names(tbldens))
 			names(tbldens)<-gsub("estDensity.","",names(tbldens))
@@ -270,7 +275,7 @@ makeContrast<-function(by="area",domdf,reportAreaSurv=TRUE){
 			}
 			reslst$pltdens<-pltdens; reslst$pltabun<-pltabun
 		}else{
-			reslst$error<-"Wrong _by_ argument"
+			reslst$error<-"Wrong _byComp_ argument"
 		}
 	}
 	return(reslst)

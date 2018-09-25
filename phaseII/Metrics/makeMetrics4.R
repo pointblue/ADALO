@@ -40,6 +40,12 @@ covarsdf<-as.data.frame(covars);covarsdf$cellId<-row.names(covarsdf)
 
 #functions
 #this gets the data for all the species, ready to model
+# covars is the stack of covariate data
+# rpth is the path to the application's directory
+# sss is the species code of the species being processed
+# seas is the season
+# gd is the grid - from which we retrieve xy
+# svdatpth is the path where to save the data
 getSpeciesData<-function(covars,rpth,sss,seas,gd,svdatpth){
 	load(file=paste(rpth,"m4dataNew/",sss,"_",seas,".RData",sep=""))
 	m4data<-na.omit(m4data)
@@ -56,7 +62,9 @@ getSpeciesData<-function(covars,rpth,sss,seas,gd,svdatpth){
 }
 
 #need this function for filtering by distribution range after predicting to the stack with m5
-addSpatialFilter<-function(rast,sss,spfilt){
+# rast is the base raster
+# spfilt is the species filter
+addSpatialFilter<-function(rast,spfilt){
 	projection(spfilt)<-CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
 	spfilt<-spTransform(spfilt,CRS("+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"))
 	rastdf<-as.data.frame(rast,xy=T);names(rastdf)<-c("lon","lat","predicted")
@@ -82,6 +90,10 @@ addSpatialFilter<-function(rast,sss,spfilt){
 }
 
 #need this function to retreive the distribution layer name
+# sss is the species code of the species being processed
+# seas is the season
+# seasons is a data frame defining the season by species
+# rpth is the path to the directory for the app
 getFilter<-function(sss,seas,seasons,rpth){
 	seaslp<-ifelse(seas=="b","breeding/","wintering/")
 	
@@ -99,6 +111,7 @@ getFilter<-function(sss,seas,seasons,rpth){
 }
 
 #need to include only meaningful variables
+# df is the data.frame to simplify
 reviewData<-function(df){
 	w<-names(df)[4:ncol(df)]
 	dellist<-character()

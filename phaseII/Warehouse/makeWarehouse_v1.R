@@ -59,6 +59,7 @@ spp<-c("BAIS","BLRA","BOBO","BUOW","CANV","CCLO","FEHA","LBCU","LETE","MAGO","MO
 flpthm4<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/m4rasterNew/asTables/";m4fls<-list.files(flpthm4)
 flpthm5<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/finalFits_metric5/asTables/";m5fls<-list.files(flpthm5)
 flpthhapet<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/hapet/asTables/";hapetfls<-list.files(flpthhapet)
+flpthecn<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/ecn/asTables/";ecnfls<-list.files(flpthecn)
 
 processAsTable<-function(flslst,ss,flspth,mv,basetable){
 	ff<-subset(flslst,grepl(ss,flslst,ignore.case=TRUE))
@@ -85,6 +86,10 @@ for(ss in spp){
 	}
 	if(TRUE %in% grepl(ss,hapetfls)){
 		sptbl<-processAsTable(flslst=hapetfls,ss=ss,flspth=flpthhapet,mv=6,basetable=basetable)
+		i<-i+1;splst[[i]]<-sptbl
+	}
+	if(TRUE %in% grepl(ss,ecnfls)){
+		sptbl<-processAsTable(flslst=ecnfls,ss=ss,flspth=flpthecn,mv=7,basetable=basetable)
 		i<-i+1;splst[[i]]<-sptbl
 	}
 	speciesdf<-rbindlist(splst)
