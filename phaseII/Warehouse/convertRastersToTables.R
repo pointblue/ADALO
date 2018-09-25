@@ -110,6 +110,30 @@ for(ss in spp){
 }
 
 
+#######################################
+# ECN
+rpth<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/ECN/"
+spp<-c("BUOW","TRBL")
+rfls<-list.files(rpth,pattern=".tif");rfls<-subset(rfls,!grepl("tif.",rfls))
+for(ss in spp){
+	print(ss)
+	spfln<-subset(rfls,grepl(ss,rfls,ignore.case=TRUE))
+	rast<-raster(paste(rpth,spfln,sep=""));
+	chk<-compareRaster(g990,rast)
+	if(chk==TRUE){
+		spdf<-as.data.frame(rast);
+		names(spdf)<-ss;spdf$period<-"breeding";
+		spdf$g990cellId<-as.integer(row.names(spdf));
+		spdf<-subset(spdf,!is.na(spdf[,ss]))	
+		save(spdf,file=paste(rpth,"/asTables/ECN_",ss,".RData",sep=""))
+		print(paste("Done with breeding",spfln))
+	}else{
+		print(paste(spfln,"(breeding) is of the wrong extent or resolution or..."))
+	}
+	
+}
+
+
 
 ### Then merge inner join with base table and append to warehouse - this is in makeWarehouse_v1.R
 
