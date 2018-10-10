@@ -25,7 +25,11 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 	doidf<-data.frame()
 	if(!is.na(padusCat) && !is.na(catValues) && NROW(padusCat)==1){
 		if(NROW(catValues)==1){
-			filtvals<-paste0("(",padusCat," like '%",catValues,"%')")
+			if(catValues=="all"){
+				filtvals<-"1=1"
+			}else{
+				filtvals<-paste0("(",padusCat," like '%",catValues,"%')")
+			}
 		}else{
 			filts<-character()
 			for(vv in catValues){
@@ -78,9 +82,160 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 	}
 	odbcClose(conn)
 	
-	#make constrasts
-	reslst<-makeContrast(byComp=byComp,domdf=domdf,reportAreaSurv=reAS)
-	return(reslst)
+	domdf$AreaSizeHA<-round(domdf$sumCells*9/100,1)
+	domdf$metric<-ifelse(as.character(domdf$metric)=="4", "Empirical",
+			ifelse(as.character(domdf$metric)=="5", "M_BASE",
+					ifelse(as.character(domdf$metric)=="6", "M_HAPET","M_ECN")))
+	
+	#calculate relative abundance
+	if(nrow(domdf)>1){
+		domdfout<-data.frame()
+		for(ss in species){
+			domspdf<-subset(domdf,species==ss)
+			
+			if(!is.na(padusCat) && catValues=="all" && !is.na(geopolCat) && NROW(geopolValues)==1 && geopolRestrict==TRUE && byComp=="area"){ #special case where we can calculate unprotected areas
+				#calculate unprotected abundance
+				tbla<-subset(domspdf,!Area %in% paste(geopolCat,geopolValues))
+				tblb<-subset(domspdf,Area %in% paste(geopolCat,geopolValues))
+				#"Area","species","metric","sumCells","wgtSumMetric","wgtDensity","hectareDensity","wgtAbundance"
+				tblc<-data.frame(Area="Unprotected",AreaSizeHA=tblb$AreaSizeHA-sum(tbla$AreaSizeHA,na.rm=T),
+						species=unique(tbla$species),metric=unique(tbla$metric),sumCells=tblb$sumCells-sum(tbla$sumCells,na.rm=T),
+						wgtSumMetric=tblb$wgtSumMetric-sum(tbla$wgtSumMetric,na.rm=T))
+				tblc$wgtAbundance<-round(tblc$wgtSumMetric/1089,3)
+				tblc$wgtDensity<-round(tblc$wgtSumMetric/tblc$sumCells,3)
+				tblc$hectareDensity<-round(tblc$wgtDensity/98.01,6)
+				tblc<-tblc[,names(tbla)]
+				tbld<-rbind(tbla,tblc)
+				tabund<-sum(tbld$wgtAbundance,na.rm=T)
+				tbld$relAbundance<-round(tbld$wgtAbundance*100/tabund)
+				tblb$relAbundance<-100
+				domspdf<-rbind(tbld,tblb)
+				domdfout<-rbind(domdfout,domspdf)
+			}else if(!is.na(padusCat) && !is.na(geopolCat)){# both padus AND geopol present
+				#simply assign NA to geopols and calculate the relative abundance of all remaining 
+				tbla<-subset(domspdf,!Area %in% paste(geopolCat,geopolValues))
+				tabund<-sum(tbla$wgtAbundance,na.rm=T)
+				tbla$relAbundance<-round(tbla$wgtAbundance*100/tabund)
+				tblb<-subset(domspdf,Area %in% paste(geopolCat,geopolValues))
+				tblb$relAbundance<-NA
+				domspdf<-rbind(tbla,tblb)
+				domdfout<-rbind(domdfout,domspdf)
+			}else{# either padus or geopol present
+				#a simple comparison of relative abundance between selected categories
+				tabund<-sum(domspdf$wgtAbundance,na.rm=T)
+				domspdf$relAbundance<-round(domspdf$wgtAbundance*100/tabund)
+				domdfout<-rbind(domdfout,domspdf)
+			}
+		}
+		domdf<-domdfout
+	}
+	
+	return(domdf)
+}
+
+#make constrasts
+# domdf is the result data.frame from makeQuestion
+# reportAreaSurv is a boolean indicating if the percent area surveyed should be reported. Matters only for metric 4 (empirical). Default FAlSE
+# byComp is a string (either: area or species) indicating how to construct the comparison. It assumes one or the other has more levels, thus gives it row priority:
+#	if the string is "area" each row in the table is a different padus/geopolitical level, each column is a species, and cell value is indicated with outp. This is the default.
+#	if the string is "species" each row is a species, each column a different area, and cell value is as prescribed in outp
+# outp is either dens (density) or abund (abundance index) - the content of cells in the output table
+# outt indicates if to return a table or plot: string table or plot. Defaults to "table"
+makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt="table"){
+	if(nrow(domdf)==1){
+		res<-"The results data.frame has only 1 row - nothing to contrast"
+	}else if(!is.data.frame(domdf)){
+		res<-"The result data.frame has no data and is not a data.frame - error obtaining the domain data.frame"
+	}else{
+		dataSource<-unique(domdf$metric)
+		if(reportAreaSurv==TRUE && unique(domdf$metric)=="Empirical" && byComp=="area"){	#compare areas by percent area surveyed.
+			if(outt=="plot"){ #percAreaSuv as plot
+				res<-ggplot(data=domdf,aes(x=Area,y=percAreaSurveyed)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="% area surveyed")
+				if(NROW(unique(domdf$species))>1){
+					ns<-ifelse(NROW(unique(domdf$species))%in% c(2,4),2,3)
+					pltsurv<-pltsurv + facet_wrap(~species,ncol=ns)
+				}
+			}else{	#percAreaSuv as table
+				res<-reshape(domdf[,c("Area","percAreaSurveyed","species")],idvar=c("Area"),timevar="species",direction="wide")
+				names(res)<-gsub("percAreaSurveyed.","%Surv_",names(res))
+				res<-replaceNAs(df=res,defvar=c("Area","AreaSizeHA"))
+			}
+		}else if(byComp=="species"){	#comparison by species
+			if(outp=="dens"){	#density by species
+				if(outt=="plot"){	#density by species as plot
+					pltdens<-ggplot(data=domdf,aes(x=species,y=hectareDensity)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Density (birds/Ha)")
+					if(NROW(unique(domdf$Area))>1){
+						nc<-ifelse(NROW(unique(domdf$Area))%in% c(2,4),2,3)
+						pltdens<-pltdens + facet_wrap(~Area,ncol=nc,scales="free")
+					}
+					res<-pltdens
+				}else{	#density by species as table
+					densvars<-c("Area","wgtDensity","species")
+					tbldens<-reshape(domdf[,densvars],idvar="species",timevar="Area",direction="wide")
+					names(tbldens)<-gsub("wgtDensity.","",names(tbldens))
+					tbldens$Source<-dataSource
+					tbldens<-replaceNAs(df=tbldens,defvar=c("species","Source"))
+					res<-tbldens
+				}
+			}else{	#abundance by species
+				if(outt=="plot"){	#abundance by species as a plot
+					pltabun<-ggplot(data=domdf,aes(x=species,y=wgtAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Abundance index")
+					if(NROW(unique(domdf$Area))>1){
+						nc<-ifelse(NROW(unique(domdf$Area))%in% c(2,4),2,3)
+						pltabun<-pltabun + facet_wrap(~Area,ncol=nc,scales="free")
+					}
+					res<-pltabun
+				}else{	#abundance by species as a table
+					abundvars<-c("Area","relAbundance","species")
+					tblabund<-reshape(domdf[,abundvars],idvar="species",timevar="Area",direction="wide")
+					names(tblabund)<-gsub("relAbundance.","",names(tblabund))
+					tblabund$Source<-dataSource
+					tblabund<-replaceNAs(df=tblabund,defvar=c("species","Source"))
+					res<-tblabund
+				}
+			}
+			
+		}else if(byComp=="area"){	#comparison by area
+			idvarreg<-c("Area","AreaSizeHA")
+			aggvars<-c("Area","AreaSizeHA","species")
+			if(outp=="dens"){
+				if(outt=="plot"){
+					pltdens<-ggplot(data=domdf,aes(x=Area,y=hectareDensity)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Density (birds/Ha)")
+					if(NROW(unique(domdf$species))>1){
+						nc<-ifelse(NROW(unique(domdf$species))%in% c(2,4),2,3)
+						pltdens<-pltdens + facet_wrap(~species,ncol=nc,scales="free")
+					}
+					res<-pltdens
+				}else{
+					tbldens<-reshape(domdf[,c(aggvars,"wgtDensity")],idvar=idvarreg,timevar="species",direction="wide")
+					names(tbldens)<-gsub("wgtDensity.","",names(tbldens))
+					tbldens$Source<-dataSource
+					tbldens<-replaceNAs(df=tbldens,defvar=c("Area","AreaSizeHA","Source"))
+					res<-tbldens
+				}
+			}else{	#abundance
+				if(outt=="plot"){
+					pltabun<-ggplot(data=domdf,aes(x=Area,y=wgtAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Abundance index")
+					if(NROW(unique(domdf$species))>1){
+						nc<-ifelse(NROW(unique(domdf$species))%in% c(2,4),2,3)
+						pltabun<-pltabun + facet_wrap(~species,ncol=nc,scales="free")
+					}
+					res<-pltabun
+				}else{
+					tblabund<-reshape(domdf[,c(aggvars,"relAbundance")],idvar=idvarreg,timevar="species",direction="wide")
+					names(tblabund)<-gsub("relAbundance.","",names(tblabund))
+					tblabund$Source<-dataSource
+					tblabund<-replaceNAs(df=tblabund,defvar=c("Area","AreaSizeHA","Source"))
+					
+					res<-tblabund
+				}
+			}
+		}else{
+			res<-"Wrong _byComp_ argument value"
+		}
+	}
+	return(res)
+	
 }
 
 ## getValuesBy Metric is the workhorse function - you can ask to get values based on a PADUS domain of interest, or based on some other domain
@@ -120,7 +275,7 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,padusCat=NA,filtPeriod=
 			sptblq<-paste(sptblq,"and period =",filtPeriod)
 		}
 		
-		sqlq<-paste("select t1.intId, t1.padusObjId, t1.ncells, t2.cellMetric from (",baseintq,") as t1 left join (",sptblq,") ", 
+		sqlq<-paste("select t1.intId, t1.padusObjId, t1.ncells, t2.metricValue, t2.cellMetric from (",baseintq,") as t1 left join (",sptblq,") ", 
 				"as t2 on (t1.intId = t2.intId and t1.padusObjId = t2.padusObjId)",sep="")
 		
 		df<-sqlQuery(conn,sqlq)
@@ -130,42 +285,49 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,padusCat=NA,filtPeriod=
 			df$cellMetric<-ifelse(is.na(df$cellMetric),0,df$cellMetric)
 		}
 		if(nrow(df)>0){
+			repfields<-c("Area","species","metric","sumCells","wgtSumMetric","wgtDensity","hectareDensity","wgtAbundance","percAreaSurveyed")
 			if(is.data.frame(doidf)){
+				#sumCells, #wgtSumMetric, #wgtAverageMetric
 				df<-merge(df,doidf,by="padusObjId",all.x=T)
 				tcells<-aggregate(as.formula(paste0("ncells~",padusCat)),df,sum,na.rm=T)
-				tdf<-aggregate(as.formula(paste0("cellMetric~",padusCat)),df,mean,na.rm=T)
-				names(tdf)<-gsub("cellMetric","estDensity",names(tdf))
+				names(tcells)<-gsub("ncells","sumCells",names(tcells))
+				tdf<-aggregate(as.formula(paste0("cellMetric~",padusCat)),df,sum,na.rm=T)
+				names(tdf)<-gsub("cellMetric","wgtSumMetric",names(tdf))
 				resdf<-merge(tdf,tcells,by=padusCat)
-				resdf$estAbundance<-resdf$estDensity*resdf$ncells
-				resdf$estAbundance<-ceiling(resdf$estAbundance/1089)
-				resdf$estDensity<-resdf$estDensity/98.01	#reporting values by hectare
-				resdf$estDensity<-round(resdf$estDensity,2)
+				resdf$wgtAbundance<-round(resdf$wgtSumMetric/1089,3)
+				resdf$wgtDensity<-round(resdf$wgtSumMetric/resdf$sumCells,3)
+				resdf$hectareDensity<-round(resdf$wgtDensity/98.01,6)
 				if(metricVal==4){
 					nc5<-sqlQuery(conn,baseintq)
 					ncdf<-merge(nc5,doidf,by="padusObjId",all.x=T)
 					ncells5<-aggregate(as.formula(paste0("ncells~",padusCat)),ncdf,sum,na.rm=T)
-					names(ncells5)<-gsub("ncells","totalcells",names(ncells5))
-					resdf<-merge(resdf,ncells5[,c(padusCat,"totalcells")],by=padusCat,all.x=T)
-					resdf$percAreaSurveyed<-round(resdf$ncells*100/resdf$totalcells)
+					names(ncells5)<-gsub("ncells","totalCells",names(ncells5))
+					resdf<-merge(resdf,ncells5[,c(padusCat,"totalCells")],by=padusCat,all.x=T)
+					resdf$percAreaSurveyed<-round(resdf$sumCells*100/resdf$totalCells)
 				}else{
-					resdf$totalcells<-resdf$ncells
+					resdf$totalcells<-resdf$totalCells
 					resdf$percAreaSurveyed<-100
 				}
 				names(resdf)<-gsub(padusCat,"Area",names(resdf))
-				resdf<-resdf[,which(!names(resdf) %in% "totalcells")]
+				resdf<-resdf[,which(!names(resdf) %in% "totalCells")]
 				if(reportAreaSurv==FALSE){
 					resdf<-resdf[,which(!names(resdf) %in% "percAreaSurveyed")]
+					repfields<-subset(repfields,repfields!="percAreaSurveyed")
 				}
-			}else{
-				df$count<-df$ncells*df$cellMetric
-				tcells<-sum(df$ncells,na.rm=T)
-				tmetric<-sum(df$count,na.rm=T)
-				resdf<-data.frame(Area=paste(geopolField,geopolValue),estDensity=tmetric/tcells/1089,ncells=tcells,estAbundance=ceiling(tmetric/1089))
+			}else{ #no padus just geopol
+				repfields<-subset(repfields,repfields!="percAreaSurveyed")
+				sumCells<-sum(df$ncells,na.rm=T)
+				wgtSumMetric<-sum(df$cellMetric,na.rm=T)
+				wgtAbundance<-round(wgtSumMetric/1089,3)
+				wgtDensity<-round(wgtSumMetric/sumCells,3)
+				hectareDensity<-round(wgtDensity/98.01,6)
+				resdf<-data.frame(Area=paste(geopolField,geopolValue),sumCells=sumCells, wgtSumMetric=wgtSumMetric, wgtAbundance=wgtAbundance, wgtDensity=wgtDensity, hectareDensity=hectareDensity)
 			}
 			resdf$species<-spcd
 			resdf$metric<-metricVal
+			resdf<-resdf[,repfields]
 		}else{resdf<-NA}	#when m4 has no data for this locale
-	}else{resdf<-NA}	#bad request: metric is not 4, 5, or 6
+	}else{resdf<-NA}	#bad request: metric is not 4, 5, 6, or 7
 	return(resdf)
 }
 
@@ -176,11 +338,15 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,padusCat=NA,filtPeriod=
 # mnames 	A character string with the names to simplify to
 aggManyNames<-function(doidf,mcat,mnames){
 	sdf<-data.frame()
-	for(nn in mnames){
-		tdf<-subset(doidf,grepl(nn,doidf[,mcat]))
-		if(nrow(tdf)>0){
-			tdf[,mcat]<-nn
-			sdf<-rbind(sdf,tdf)
+	if(NROW(mnames)==1 && mnames=="all"){
+		sdf<-unique(doidf)
+	}else{
+		for(nn in mnames){
+			tdf<-subset(doidf,grepl(nn,doidf[,mcat]))
+			if(nrow(tdf)>0){
+				tdf[,mcat]<-nn
+				sdf<-rbind(sdf,tdf)
+			}
 		}
 	}
 	return(sdf)
@@ -196,89 +362,6 @@ replaceNAs<-function(df,defvar){
 		df[,mm]<-ifelse(is.na(df[,mm]),0,df[,mm])
 	}
 	return(df)
-}
-
-## This function converts the raw data into ADALO-type contrasts between species or regions
-# byComp 			The type of contrast. Valid values: area (same species and period - compare across areas; this is the default), 
-#						or species (same area and period - compare across species)
-# domdf 			The data frame containing the data for which to develop the contrasts
-# reportAreaSurv	Boolean indicating if to include %AreaSurveyed in the return. Default TRUE. If the request is a comparison between a unit and a geopolitical, set to FALSE
-makeContrast<-function(byComp="area",domdf,reportAreaSurv=TRUE){
-	reslst<-list()
-	if(nrow(domdf)==1){
-		reslst$error<-"The domain data.frame has only 1 row - nothing to contrast"
-		reslst$rawdata<-domdf
-	}else if(!is.data.frame(domdf)){
-		reslst$error<-"The domain data.frame has no data and is not a data.frame - error obtaining the domain data.frame"
-		reslst$rawdata<-domdf
-	}else{
-		reslst$rawdata<-domdf
-		dataSource<-ifelse(unique(domdf$metric)==4,"Empirical",ifelse(unique(domdf$metric)==5,"Model_ADALO",ifelse(unique(domdf$metric)==6,"Model_HAPET","Model_ECN")))
-		if(reportAreaSurv==TRUE){
-			pltsurv<-ggplot(data=domdf,aes(x=Area,y=percAreaSurveyed)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="% area surveyed")
-			if(NROW(unique(domdf$species))>1){
-				ns<-ifelse(NROW(unique(domdf$species))%in% c(2,4),2,3)
-				pltsurv<-pltsurv + facet_wrap(~species,ncol=ns)
-			}
-			reslst$pltsurv<-pltsurv
-			densvars<-c("Area","estDensity","percAreaSurveyed","species")
-			idvarreg<-c("Area","percAreaSurveyed");idvarspp<-c("species","percAreaSurveyed")
-			tblsurv<-reshape(domdf[,c("Area","percAreaSurveyed","species")],idvar=c("Area"),timevar="species",direction="wide")
-			names(tblsurv)<-gsub("percAreaSurveyed.","%Surv_",names(tblsurv))
-			tblsurv<-replaceNAs(df=tblsurv,defvar=c("Area"))
-			reslst$tblsurv<-tblsurv
-		}else{
-			densvars<-c("Area","estDensity","species")
-			idvarreg<-c("Area");idvarspp<-c("species")
-		}
-		
-		if(tolower(byComp)=="area"){
-			tbldens<-reshape(domdf[,densvars],idvar=idvarreg,timevar="species",direction="wide")
-			names(tbldens)<-gsub("percAreaSurveyed","%AreaSurveyed",names(tbldens))
-			names(tbldens)<-gsub("estDensity.","",names(tbldens))
-			tblabund<-reshape(domdf[,c("Area","estAbundance","species")],idvar=c("Area"),timevar="species",direction="wide")
-			names(tblabund)<-gsub("estAbundance.","",names(tblabund))
-			tbldens$Source<-dataSource;tblabund$Source<-dataSource
-			tbldens<-replaceNAs(df=tbldens,defvar=c("Area","Source"))
-			tblabund<-replaceNAs(df=tblabund,defvar=c("Area","Source"))
-			
-			reslst$tbldens<-tbldens;reslst$tblabund<-tblabund
-			
-			#make plots for density and abundance, where each bar is a Area+period, faceted by species
-			pltdens<-ggplot(data=domdf,aes(x=Area,y=estDensity)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Density (birds/Ha)")
-			pltabun<-ggplot(data=domdf,aes(x=Area,y=estAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Abundance (# birds)")
-			if(NROW(unique(domdf$species))>1){
-				nc<-ifelse(NROW(unique(domdf$species))%in% c(2,4),2,3)
-				pltdens<-pltdens + facet_wrap(~species,ncol=nc,scales="free")
-				pltabun<-pltabun + facet_wrap(~species,ncol=nc,scales="free")
-			}
-			reslst$pltdens<-pltdens; reslst$pltabun<-pltabun
-		}else if(tolower(byComp)=="species"){
-			tbldens<-reshape(domdf[,densvars],idvar=idvarspp,timevar="Area",direction="wide")
-			names(tbldens)<-gsub("percAreaSurveyed","%AreaSurveyed",names(tbldens))
-			names(tbldens)<-gsub("estDensity.","",names(tbldens))
-			tblabund<-reshape(domdf[,c("Area","estAbundance","species")],idvar=c("species"),timevar="Area",direction="wide")
-			names(tblabund)<-gsub("estAbundance.","",names(tblabund))
-			tbldens$Source<-dataSource;tblabund$Source<-dataSource
-			tbldens<-replaceNAs(df=tbldens,defvar=c("species","Source"))
-			tblabund<-replaceNAs(df=tblabund,defvar=c("species","Source"))
-			
-			reslst$tbldens<-tbldens;reslst$tblabund<-tblabund
-			
-			#make plots for density and abundance, where each bar is a Area+period, faceted by species
-			pltdens<-ggplot(data=domdf,aes(x=species,y=estDensity)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Density (birds/Ha)")
-			pltabun<-ggplot(data=domdf,aes(x=species,y=estAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Abundance (# birds)")
-			if(NROW(unique(domdf$Area))>1){
-				nc<-ifelse(NROW(unique(domdf$Area))%in% c(2,4),2,3)
-				pltdens<-pltdens + facet_wrap(~Area,ncol=nc,scales="free")
-				pltabun<-pltabun + facet_wrap(~Area,ncol=nc,scales="free")
-			}
-			reslst$pltdens<-pltdens; reslst$pltabun<-pltabun
-		}else{
-			reslst$error<-"Wrong _byComp_ argument"
-		}
-	}
-	return(reslst)
 }
 
 ## This function lists the dictionary of padus categories, or the dictionary of jurisdictions, or the dictionary of species and metrics
@@ -321,5 +404,26 @@ getDictionary<-function(species=FALSE,padus=TRUE,jurisdiction=FALSE){
 	return(dict)
 }
 
-
-
+## This function beautifies manager name
+# mn is the manager whose name is being beautified
+getManagerName<-function(mn){
+	mgrNam<-ifelse(mn %in% c("ARS","DOE","NOAA","NRCS","OTHF"),"Fed - Other",
+		ifelse(mn %in% c("BIA"),"Fed - BIA",
+			ifelse(mn %in% c("SDNR","SDC","SDOL","SFW","SLB","SPR","OTHS"),"State",
+				ifelse(mn=="BLM","Fed - BLM",
+					ifelse(mn=="CITY","City",
+						ifelse(mn=="CNTY","County",
+							ifelse(mn=="DOD","Fed - DOD",
+								ifelse(mn=="FWS","Fed - FWS",
+									ifelse(mn=="JNT","Joint Mgmt",
+										ifelse(mn %in% c("REG","RWD"),"Regional Agency",
+											ifelse(mn=="NPS","Fed - NPS",
+												ifelse(mn=="PVT","Private",
+													ifelse(mn=="USACE","Fed - ACE",
+														ifelse(mn=="USBR","Fed - BOR",
+															ifelse(mn=="USFS","Fed - FS",
+																ifelse(mn=="TRIB","Tribe",
+																	ifelse(mn %in% c("UNK","UNKL"),"Unknown",
+																		mn)))))))))))))))))
+	return(mgrNam)
+}

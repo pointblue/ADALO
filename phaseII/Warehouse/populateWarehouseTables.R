@@ -60,15 +60,15 @@ addDataToTable<-function(conn, stable, dtable, charfields){
 #append the padusCats table first
 #Schema: padusObjId mgmtType mgrName desType unitName all Integers?
 pdobjects<-read.csv("/home/lsalas/adalo/warehouse/padus_r68_attTable.csv",stringsAsFactors=F)
-pdobj<-pdobjects[,c("OBJECTID","Mang_Type","Mang_Name","d_Des_Tp","Unit_Nm")]
-names(pdobj)<-c("padusObjId","mgmtType","mgrName","desType","unitName")
+pdobj<-pdobjects[,c("OBJECTID","Mang_Type","Mang_Name","d_Des_Tp","Unit_Nm","Category")]
+names(pdobj)<-c("padusObjId","mgmtType","mgrName","desType","unitName","Category")
 
 #create the connection 
 conn<-odbcConnect("adalo")
 
 #then pass the table to the function  #REDO - modify size of desTp based on length
 tm<-Sys.time()
-qq<-addDataToTable(conn=conn,stable=pdobj,dtable="padusCats",charfields=c("mgmtType","mgrName","desType","unitName"))
+qq<-addDataToTable(conn=conn,stable=pdobj,dtable="padusCats",charfields=c("mgmtType","mgrName","desType","unitName","Category"))
 Sys.time()-tm
 
 #need a lookup for the padusCats
