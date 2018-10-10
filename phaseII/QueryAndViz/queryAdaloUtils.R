@@ -107,7 +107,7 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 				tblc<-tblc[,names(tbla)]
 				tbld<-rbind(tbla,tblc)
 				tabund<-sum(tbld$wgtAbundance,na.rm=T)
-				tbld$relAbundance<-round(tbld$wgtAbundance*100/tabund)
+				tbld$relAbundance<-round(tbld$wgtAbundance*100/tabund,3)
 				tblb$relAbundance<-100
 				domspdf<-rbind(tbld,tblb)
 				domdfout<-rbind(domdfout,domspdf)
@@ -115,7 +115,7 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 				#simply assign NA to geopols and calculate the relative abundance of all remaining 
 				tbla<-subset(domspdf,!Area %in% paste(geopolCat,geopolValues))
 				tabund<-sum(tbla$wgtAbundance,na.rm=T)
-				tbla$relAbundance<-round(tbla$wgtAbundance*100/tabund)
+				tbla$relAbundance<-round(tbla$wgtAbundance*100/tabund,3)
 				tblb<-subset(domspdf,Area %in% paste(geopolCat,geopolValues))
 				tblb$relAbundance<-NA
 				domspdf<-rbind(tbla,tblb)
@@ -123,7 +123,7 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 			}else{# either padus or geopol present
 				#a simple comparison of relative abundance between selected categories
 				tabund<-sum(domspdf$wgtAbundance,na.rm=T)
-				domspdf$relAbundance<-round(domspdf$wgtAbundance*100/tabund)
+				domspdf$relAbundance<-round(domspdf$wgtAbundance*100/tabund,3)
 				domdfout<-rbind(domdfout,domspdf)
 			}
 		}

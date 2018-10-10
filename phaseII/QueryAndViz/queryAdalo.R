@@ -1,11 +1,10 @@
-<<<<<<< HEAD
 # TODO: Add comment
 # 
 # Author: lsalas
 ###############################################################################
 
-
-library(RODBC); library(ggplot2); library(plyr)
+libs<-c("RODBC","ggplot2","plyr","dplyr","tidyr","reshape2","qcc","ggQC","gridExtra")
+lapply(libs, require, character.only = TRUE)
 
 source("/home/adalouser/ADALO/phaseII/QueryAndViz/queryAdaloUtils.R")
 
