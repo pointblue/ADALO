@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # TODO: Add comment
 # 
 # Author: lsalas
@@ -85,10 +86,9 @@ res<-makeQuestion(by="area",metric=4,period=0,species="canv",padusCat="unitName"
 res$tbldens; res$pltdens
 
 
-# Q1: Compare two regions (SFBNWR vs SacRiverNWR) in importance to a species (CANV during winter)
+# Q7: Compare two regions (SFBNWR vs SacRiverNWR) in importance to a species (CANV during winter)
 res<-makeQuestion(byComp="area",metric=4,period=1,species="bais",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=6)
 res$Manager<-getManagerName(as.character(res$Area))
-
 
 
 
