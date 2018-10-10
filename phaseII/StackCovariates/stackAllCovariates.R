@@ -51,6 +51,9 @@ names(covarstack)<-gsub("key_","nwi_",names(covarstack))
 
 writeRaster(covarstack,filename=paste(rpth,"CovarStack/covarstack_masked.grd",sep=""),overwrite=TRUE)
 
-
+covars<-covarstack[[1:36]]
+covars<-covars[[c(1,11,5,2,10,6,3,4,7:9,12,13,14:23,31:33,28,26,24,25,30,29,27,36,34,35)]]
+covarsdf<-as.data.frame(covars)
+save(covarsdf,file=paste0(rpth,"CovarStack/covarsdf.RData"))
 
 

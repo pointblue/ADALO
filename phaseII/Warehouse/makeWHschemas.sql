@@ -32,10 +32,12 @@ CREATE TABLE padusCats (
   mgrName CHAR(5),
   desType CHAR(45),
   unitName CHAR(120),
+  Category CHAR(12),
   KEY units (padusObjId,unitName),
   KEY mangtp (padusObjId,mgmtType),
   KEY mangnm (padusObjId,mgrName),
-  KEY destp (padusObjId,desType)
+  KEY destp (padusObjId,desType),
+  KEY cattp (padusObjId,Category)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 -- need lookup tables for mgmtType, mgrName, and desType - can all be in 1 table
