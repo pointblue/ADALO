@@ -427,3 +427,17 @@ getManagerName<-function(mn){
 																		mn)))))))))))))))))
 	return(mgrNam)
 }
+
+## This function saves the image to the html folder of the server
+# pt is the plot object to save into an image
+# imgName is the name to give the image. Must include .jpg
+# wd and hg are image dimensions
+# baseurl is the web URL where to find the saved image
+printToURL<-function(pt,imgName,wd=480,hg=480,baseurl="http://ec2-18-144-7-236.us-west-1.compute.amazonaws.com/adalo/"){
+	jpeg(filename = paste0("/var/www/html/adalo/",imgName),
+			width = wd, height = hg, quality=100)
+		print(pt)
+	dev.off()
+	urlr<-paste0(baseurl,imgName)
+	return(urlr)
+}
