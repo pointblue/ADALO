@@ -91,8 +91,8 @@ qq<-addDataToTable(conn=conn,stable=basetable,dtable="baseIntersects",charfields
 Sys.time()-tm
 odbcClose(conn)
 
-#Load the species tables
-spcon<-odbcConnect("adalo")
+#Load the species tables to the local servers (see below for loading to the AWS servers)
+spcon<-odbcConnect("locadalo")
 spp<-c("BAIS","BLRA","BOBO","BUOW","CANV","CCLO","FEHA","LBCU","LETE","MAGO","MOPL","NOPI","RIRA","SACR","SNPL","SPPI","TRBL","WIFL")
 tm<-Sys.time()
 for(ss in spp){
@@ -101,12 +101,44 @@ for(ss in spp){
 	names(speciesdf)<-gsub("pdobjid","padusObjId",names(speciesdf))
 	speciesdf$period<-ifelse(speciesdf$period=="breeding",1,0)
 	qq<-addDataToTable(conn=spcon,stable=speciesdf,dtable=ss,charfields="")
+	print(paste("Done appending",ss))
 }
 Sys.time()-tm
 odbcClose(spcon)
 
+#######################################
+# delete contents to update
+spcon<-odbcConnect("locadalo")
+spp<-c("BAIS","BLRA","BOBO","BUOW","CANV","CCLO","FEHA","LBCU","LETE","MAGO","MOPL","NOPI","RIRA","SACR","SNPL","SPPI","TRBL","WIFL")
+delbase<-"delete from"
+tm<-Sys.time()
+for(ss in spp){
+	delsql<-paste(delbase,ss)
+	q<-sqlQuery(spcon,delsql)
+	print(paste(ss,q))
+}
+Sys.time()-tm
+odbcClose(spcon)
 
+#Load the species tables to the AWS server
+spcon<-odbcConnect("locadalo")
+spp<-c("BAIS","BLRA","BOBO","BUOW","CANV","CCLO","FEHA","LBCU","LETE","MAGO","MOPL","NOPI","RIRA","SACR","SNPL","SPPI","TRBL","WIFL")
+tm<-Sys.time()
+for(ss in spp){
+	load(paste("/home/lsalas/adalo/warehouse/",ss,".RData",sep=""))	#//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2
+	speciesdf<-speciesdf[,c("intId","pdobjid","ncells","period","metric","metricValue","cellMetric")]
+	names(speciesdf)<-gsub("pdobjid","padusObjId",names(speciesdf))
+	speciesdf$period<-ifelse(speciesdf$period=="breeding",1,0)
+	qq<-addDataToTable(conn=spcon,stable=speciesdf,dtable=ss,charfields="")
+	print(paste("Done appending",ss))
+}
+Sys.time()-tm
+odbcClose(spcon)
 
-
+#######################################################################
+## Faster to populate locally and then do a mysqldump
+mysqldump -u lsalas -p --opt --databases adalo > adalo_dump_06122019.sql
+#then
+mysql -u adalo -p < adalo_dump_06122019.sql
 
 

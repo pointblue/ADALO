@@ -4,7 +4,6 @@
 ###############################################################################
 
 
-#make baserast
 library(raster);library(data.table)
 
 memory.limit(5000000)

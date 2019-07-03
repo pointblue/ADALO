@@ -39,59 +39,8 @@ for(ss in spp){
 
 ###################################
 # M5New
-# breeding
-mskpth<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/mask/speciesMasks/"
-savepth<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/finalFits_metric5/asTables/"
-rpth<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/finalFits_metric5/breeding/unmasked/"
-spp<-c("BAIS","BOBO","BUOW","CANV","CCLO","FEHA","LBCU","MAGO","MOPL","NOPI","SACR","SPPI","TRBL")
-rfls<-list.files(rpth)
-for(ss in spp){
-	print(paste(ss,"breeding"))
-	spfln<-subset(rfls,grepl(ss,rfls,ignore.case=TRUE))
-	rast<-raster(paste(rpth,spfln,sep=""));
-	chk<-compareRaster(g990,rast)
-	if(chk==TRUE){
-		#load and apply the newmask
-		msk<-raster(paste0(mskpth,ss,"_mask05.tif"))
-		rastmsk<-rast*msk
-		spdf<-as.data.frame(rastmsk);
-		names(spdf)<-ss;spdf$period<-"breeding";
-		spdf$g990cellId<-as.integer(row.names(spdf));
-		spdf<-subset(spdf,!is.na(spdf[,ss]) & spdf[,ss]>0.01)
-		save(spdf,file=paste(savepth,"M5_",ss,".RData",sep=""))
-		print(paste("Done with breeding",spfln))
-	}else{
-		print(paste(spfln,"(breeding) is of the wrong extent or resolution or..."))
-	}
-	
-}
-
-# winter
-rpth<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/finalFits_metric5/winter/unmasked/"
-spp<-c("CANV","LBCU","MAGO","MOPL","NOPI","SACR","TRBL")
-rfls<-list.files(rpth)
-for(ss in spp){
-	print(paste(ss,"winter"))
-	spfln<-subset(rfls,grepl(ss,rfls,ignore.case=TRUE))
-	rast<-raster(paste(rpth,spfln,sep=""));
-	chk<-compareRaster(g990,rast)
-	if(chk==TRUE){
-		#load and apply the newmask
-		msk<-raster(paste0(mskpth,ss,"_mask05.tif"))
-		rastmsk<-rast*msk
-		tdf<-as.data.frame(rastmsk);
-		names(tdf)<-ss;tdf$period<-"winter";
-		tdf$g990cellId<-as.integer(row.names(tdf));
-		tdf<-subset(tdf,!is.na(tdf[,ss]) & tdf[,ss]>0.01)
-		load(paste(savepth,"M5_",ss,".RData",sep=""))
-		spdf<-rbind(spdf,tdf)
-		save(spdf,file=paste(savepth,"M5_",ss,".RData",sep=""))
-		print(paste("Done with winter",spfln))
-	}else{
-		print(paste(spfln,"(winter) is of the wrong extent or resolution or..."))
-	}
-	
-}
+# breeding & winter
+# see convertRastersToTables_ORmasked.R for these
 
 ###################################
 # HAPET
