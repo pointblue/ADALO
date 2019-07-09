@@ -14,42 +14,68 @@ source("/home/adalouser/ADALO/phaseII/QueryAndViz/queryAdaloUtils.R")
 ###########################################################################################
 
 ## OVERVIEW:
-## There are two types of questions to ask - by species or by region: 
-# 1) BY SPECIES - We want to know how two or more species compare within a PADUS category's domain (e.g., within a refuge), 
+## There are two types of questions to ask - here categorized as queries by species or by region: 
+# 1) QUERIES BY SPECIES - We want to know how two or more species compare within a PADUS category's domain (e.g., within a refuge), 
 #	(think of a table where the columns are refuges and the rows are species, each cell reporting the abundance of the species)
-#	Example question: which species should be targeted for management in refuge X?
-# 2) BY AREA - We want to know how one or more species compare across domains options 
+#	Example question: which species should be targeted for management in refuge X? A comparison among species within a refuge or 
+#	collection of refuges will help answer the question
+# 2) QUERIES BY AREA - We want to know how one or more species compare across spatial domains 
 #	(in the hypothetical table, the columns are one or more species and the rows are the spatial domains). 
-#	The domain comparisons come in three options"
+#	The domain comparisons come in three options:
 #		2a) Compare species between two or more members of a PADUS category
-#			The following categories exist: mgmtType, mgrName, desType, unitName 
+#			The following PADUS categories exist in the warehouse: mgmtType, mgrName, desType, unitName (others can be added later)
 #			(example mgmtType=FED, mgrName=FWS, desType=National Widlife Refuge, unitName=San Pablo Bay National Wildlife Refuge)
-#			Example questions: compare species X between FWS and NPS, or between two refuges, or between mgmtType=FED and all others
+#			Example questions: how species X' density compares between FWS and NPS, or between two refuges, or between mgmtType=FED and all other management types
 #		2b) Compare species between a PAUDS Unit and a geopolitical region 
-#			The following geopolitical regions exist: FWSregion, NPSregion, USFSregion, LCCregion, USJVregion, BCR, State, and County.
+#			The following geopolitical regions exist in the warehouse: FWSregion, NPSregion, USFSregion, LCCregion, USJVregion, BCR, State, and County.
 #			Example questions: How important is SPBNWR for CANV with relation to the entire SFBJV or the entire BCR or Region 8?
 #		2c) Compare species between geopolitical regions
 #			Example question: Which agency (FWS or DOD) is relatively more important (i.e. manages more individuals) for TRBL?
 
-#DEFINITIONS
-#Area = Land ownership category
+## DEFINITIONS OF TABLE OF RESULTS 
+# The following are the columns in the table returned after making a question to the tool with makeQuestion:
 
-#sumCells = total number of 30-m cells within the protected area or manager
+# Area				The land ownership category
+# Species			The species code of the species queried
+# Metric			The metric being requested: 4, 5, 6 or ...
+# sumCells			The total number of 30-m cells within the protected area or manager
+# wgtSumMetric		The weighted sum of the metric. 
+# 			Each intersect (each row in the warehouse table) has the padus category value, encounter rate at 990-m, and number of 30-m cells in it. 
+#    		So, for each intersect we multiply the encounter rate x number of 30-m cells in it, and then add these up across all rows returned.
+#			It is thus the sum of values of the metric across all 30-m cells queried
+# wgtDensity		This is wgtSumMetric/sumCells (the weighted average density)
+# hectareDensity	The estimated encounter rate of birds per hectare
+# wgtAbundance 		wgtDensity x number of 990-m cells, but because number of 990-m cells is sumCells/1089, you can see that wgtAbundance is also wgtSumMetric/1089. 
+#    		Because this is a weighted sum of the average encounter rate at 990-m, it is really an Index of Abundance.
+# AreaSizeHa 		The area of the PADUS category being reported in the domain queried.
+#			Each protected area exists in the warehouse as the sum of the 30-m cells that are within it. So, then it is: sumCells x area of a 30-m cell / 10,000, 
+#    		or sumCells x 900/10,000
+# relAbundance 		The percent of the total estimated abundance (where the total is the sum of the weighted abundances across the domain queried) 
+#    		A value between 0-100. So, if the domain queried is 6 different refuges, total abundance is the sum of the weighted abundances of those 6 refuges, and
+#    		relAbundance for a refuge will be its percent contribution to the total.
 
-#wgtSumMetric = the weighted sum of the metric. Each intersect (each row in the warehouse table) has the padus category value, encounter rate at 990-m, and number of 30-m cells in it. Think of the wgtSumMetric as if each 30-m within the intersect is a vote on the encounter rate, and we are calculating the tally of votes across all intersects (i.e., all 990-m cells that intersect with the protected area. So, for each intersect we multiply the encounter rate x number of 30-m cells, and then add these up across all rows.
+## PARAMETERS PASSED TO makeQuestion FUNCTION
+# MakeQuestion is the function that gets you the raw data
+# byComp 			Either species or area (default), indicating that either different species or different areas will make the rows of the output table
+# metric			An integer: 4 (empirical), 5 (ADALO sdm), 6 (HAPET sdm) or 7 (POINT BLUE sdm). Defaults to empirical (4)
+# period			Either NA, 0 or 1 (all, winter or breeding, respectively). Defaults to all
+# species			Mandatory; a vector of one or more species to consider for the comparisons
+# padusCat			The name of the PADUS category against which to develop contrasts: mgmtType, mgrName, desType, or unitName
+# catValues			The PADUS values to contrast
+# geopolCat 		Names one of the geopolitical domains to query for data: USFWSregion, USFSregion, NPSregion, LCCregion, USJVregion, BCRregion, StateFIPS, or CountyFIPS
+# geopolValues 		The values to filter for the geopolField (e.g., 6 or 8 for USFWSregion) - this is an integer
+# geopolRestrict	A boolean indicating that the question is restricted to the domain defined by the geopolCats
 
-#wgtDensity = wgtSumMetric/sumCells (this is the average vote of each 30-m cell)
+## PARAMETERS PASSED TO makeContrast FUNCTION
+# makeContrast is a function that generates a simpler table with area or species as the rows (byComp), or a plot of density or abundance
+# domdf 			is the result data.frame from makeQuestion
+# reportAreaSurv 	is a boolean indicating if the percent area surveyed should be reported. Matters only for metric 4 (empirical). Default FAlSE
+# byComp 			is a string (either: area or species) indicating how to construct the comparison. It assumes one or the other has more levels, thus gives it row priority:
+#	if the string is "area" each row in the table is a different padus/geopolitical level, each column is a species, and cell value is indicated with outp. This is the default.
+#	if the string is "species" each row is a species, each column a different area, and cell value is as prescribed in outp
+# outp 				is either dens (density) or abund (abundance index) - the content of cells in the output table
+# outt 				indicates if to return a table or plot: string table or plot. Defaults to "table"
 
-#hectareDensity = estimated encounter rate of birds per hectare
-
-#wgtAbundance = wgtDensity x number of 990-m cells, but because number of 990-m cells is sumCells/1089, you can see that wgtAbundance is also wgtSumMetric/1089. Because this is a weighted sum of the average encounter rate at 990-m, it is really an Index of Abundance
-
-#AreaSizeHa = Each protected area exists in the warehouse as the sum of the 30-m cells that are within it. So, then: sumCells x area of a 30-m cell / 10,000, or sumCells x 900/10,000
-
-#MakeQuestion gets you the raw data; makeContrast generates a simpler table with area or species as the rows (byComp), or a plot of density or abundance
-
-#By and byComp are the same thing, named differently in functions to avoid closure errors (something that has to do with passing arguments by reference through functions in a stack. Is that confusing? Should I change it so it’s the same across?
-#Res and reserr are just two examples of questions. You could name the same, or A and B, or…
 
 ########################################################################
 ## Questions --
@@ -91,7 +117,7 @@ p<-makeContrast(res,reportAreaSurv=FALSE,byComp="area",outp="dens",outt="plot");
 p<-makeContrast(res,reportAreaSurv=FALSE,byComp="area",outp="abund",outt="plot"); print(p)
 
 # Q5: compare all manager types within FWSregion 8, and vs the entire region 8, for canv during breeding season
-res<-makeQuestion(by="area",metric=4,period=1,species="canv",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=8)
+res<-makeQuestion(byComp="area",metric=4,period=1,species="canv",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=8)
 
 # NOTE that the abundance for R8 is the same calculated in Q3-alt
 subset(res,Area=="USFWSregion 8",select="wgtAbundance")
@@ -100,7 +126,7 @@ subset(reserr$rawdata,Area=="USFWSregion 8",select="wgtAbundance")
 
 # Here is an example that does not enforce the domain:
 # Q6: compare San Pablo Bay vs the entire R6 for canv over winter.
-res<-makeQuestion(by="area",metric=4,period=0,species="canv",padusCat="unitName",catValues=c('San Pablo Bay National Wildlife Refuge'),geopolCat="USFWSregion",geopolValues=6,geopolRestrict=FALSE)
+res<-makeQuestion(byComp="area",metric=4,period=0,species="canv",padusCat="unitName",catValues=c('San Pablo Bay National Wildlife Refuge'),geopolCat="USFWSregion",geopolValues=6,geopolRestrict=FALSE)
 #No density for R6?
 res$tbldens; res$pltdens
 
@@ -117,7 +143,7 @@ res$Manager<-getManagerName(as.character(res$Area))
 # Q1: compare all manager types within FWSregion 6, and vs the entire region 6, for bais during breeding season
 
 #EMPIRICAL
-res<-makeQuestion(by="area",metric=4,period=1,species="bais",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=6)
+res<-makeQuestion(byComp="area",metric=4,period=1,species="bais",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=6)
 res
 
 
@@ -146,7 +172,7 @@ p1
 
 
 #BASE MODEL
-res<-makeQuestion(by="area",metric=5,period=1,species="bais",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=6)
+res<-makeQuestion(byComp="area",metric=5,period=1,species="bais",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=6)
 res
 
 #First, how is land ownership distributed in Region 6.
@@ -189,7 +215,7 @@ p1
 
 
 #HAPET MODEL
-res<-makeQuestion(by="area",metric=6,period=1,species="bais",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=6)
+res<-makeQuestion(byComp="area",metric=6,period=1,species="bais",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=6)
 res
 
 
@@ -209,7 +235,7 @@ p1
 # Q2: compare all manager types within FWSregion 8, and vs the entire region 8, for trbl during breeding season
 
 #EMPIRICAL
-res<-makeQuestion(by="area",metric=4,period=1,species="trbl",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=8)
+res<-makeQuestion(byComp="area",metric=4,period=1,species="trbl",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=8)
 res
 
 
@@ -238,7 +264,7 @@ p1
 
 
 #BASE MODEL
-res<-makeQuestion(by="area",metric=5,period=1,species="trbl",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=8)
+res<-makeQuestion(byComp="area",metric=5,period=1,species="trbl",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=8)
 res
 
 #First, how is land ownership distributed in Region 8.
@@ -281,7 +307,7 @@ p1
 
 
 #POINT BLUE MODEL
-res<-makeQuestion(by="area",metric=7,period=1,species="trbl",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=8)
+res<-makeQuestion(byComp="area",metric=7,period=1,species="trbl",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=8)
 res
 
 

@@ -134,13 +134,13 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 }
 
 #make constrasts
-# domdf is the result data.frame from makeQuestion
-# reportAreaSurv is a boolean indicating if the percent area surveyed should be reported. Matters only for metric 4 (empirical). Default FAlSE
-# byComp is a string (either: area or species) indicating how to construct the comparison. It assumes one or the other has more levels, thus gives it row priority:
+# domdf 			is the result data.frame from makeQuestion
+# reportAreaSurv 	is a boolean indicating if the percent area surveyed should be reported. Matters only for metric 4 (empirical). Default FAlSE
+# byComp 			is a string (either: area or species) indicating how to construct the comparison. It assumes one or the other has more levels, thus gives it row priority:
 #	if the string is "area" each row in the table is a different padus/geopolitical level, each column is a species, and cell value is indicated with outp. This is the default.
 #	if the string is "species" each row is a species, each column a different area, and cell value is as prescribed in outp
-# outp is either dens (density) or abund (abundance index) - the content of cells in the output table
-# outt indicates if to return a table or plot: string table or plot. Defaults to "table"
+# outp 				is either dens (density) or abund (abundance index) - the content of cells in the output table
+# outt 				indicates if to return a table or plot: string table or plot. Defaults to "table"
 makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt="table"){
 	if(nrow(domdf)==1){
 		res<-"The results data.frame has only 1 row - nothing to contrast"

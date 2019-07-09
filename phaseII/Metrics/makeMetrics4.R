@@ -8,23 +8,35 @@ libs<-c("raster","rgdal","rgeos","sp","fmsb","dismo","data.table","plyr","gbm")
 lapply(libs, require, character.only = TRUE)
 
 #rpth<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/"
-rpth<-"/home/lsalas/adalo/"
+rpth<-"/home/ubuntu/adalo/"
 
-spdf<-data.frame(spcd=c("WIFL","SACR","TRBL","BOBO","BUOW","SPPI","BAIS","CANV","CCLO","FEHA","LBCU","MAGO","MOPL","NOPI"),
+spdf1<-data.frame(spcd=c("WIFL","SACR","TRBL","BOBO","BUOW","SPPI","BAIS","CANV","CCLO","FEHA","LBCU","MAGO","MOPL","NOPI"),
 		lrate=c(0.001,0.09,0.1,0.1,0.1,0.01,0.005,0.05,0.05,0.05,0.09,0.05,0.05,0.09),
 		maxt=c(5000,10000,10000,10000,10000,10000,5000,5000,5000,5000,10000,5000,5000,10000),
 		binlog=rep(TRUE,14),		
 		bingeo=rep(FALSE,14))
+spdf2<-data.frame(spcd=c("WIFL","SACR","TRBL","BOBO","BUOW","SPPI","BAIS","CANV","CCLO","FEHA","LBCU","MAGO","MOPL","NOPI"),
+		lrate=c(0.001,0.09,0.1,0.1,0.1,0.01,0.005,0.05,0.05,0.05,0.09,0.05,0.05,0.09),
+		maxt=c(5000,10000,10000,10000,10000,10000,5000,5000,5000,5000,10000,5000,5000,10000),
+		binlog=rep(TRUE,14),		
+		bingeo=rep(TRUE,14))
+spdf<-rbind(spdf1,spdf2)
 
 seas<-"w"		#OJO!!!
 
-#need the following changes for winter   #OJO!!!
-spdf[5,2]<-0.005
 
 #for winter
 if(seas=="w"){
+	#need the following changes for winter   #OJO!!!
+	spdf[5,2]<-0.005;spdf[19,2]<-0.005
+	
 	spdf<-subset(spdf,spcd %in% c("SACR","TRBL","BUOW","CANV","LBCU","MAGO","MOPL","NOPI"))
+}else{ #for breeding
+	spdf<-subset(spdf,spcd %in% c("BAIS","BOBO","BUOW","CANV","CCLO","FEHA","LBCU","MAGO","MOPL","NOPI","SACR","SPPI","TRBL"))
 }
+
+
+
 
 #accessory data
 seasons<-data.table(read.csv(paste(rpth,"Seasons.csv",sep=""),stringsAsFactors=FALSE))
@@ -134,13 +146,13 @@ fitBRToptimalModel<-function(rpth,svpth,m5data,ncov,resp,lrat,fam,maxtr){
 	nt<-brtm$n.trees
 	if(nt<(0.2*maxtr) || is.null(nt)){
 		jpeg(filename=svpth)
-		brtm<-gbm.step(data=m5data, gbm.x=4:nc, gbm.y=resp, tree.complexity = 3,
+		brtm<-gbm.step(data=m5data, gbm.x=4:ncov, gbm.y=resp, tree.complexity = 3,
 				learning.rate = (lrat/2), bag.fraction = 0.75, n.folds = 10, family = fam, n.trees = 50, step.size = 50, max.trees = maxtr,
 				plot.main = TRUE, verbose = FALSE, silent = FALSE, keep.fold.models = FALSE, keep.fold.vector = FALSE, keep.fold.fit = TRUE)
 		dev.off()
 	}else if(nt>(0.8*maxtr)){
 		jpeg(filename=svpth)
-		brtm<-gbm.step(data=m5data, gbm.x=4:nc, gbm.y=resp, tree.complexity = 3,
+		brtm<-gbm.step(data=m5data, gbm.x=4:ncov, gbm.y=resp, tree.complexity = 3,
 				learning.rate = (lrat*2), bag.fraction = 0.75, n.folds = 10, family = fam, n.trees = 50, step.size = 50, max.trees = maxtr,
 				plot.main = TRUE, verbose = FALSE, silent = FALSE, keep.fold.models = FALSE, keep.fold.vector = FALSE, keep.fold.fit = TRUE)
 		dev.off()
@@ -165,7 +177,7 @@ makeOutRaster<-function(base,cid,civ,sss,seas,seasons,rpth,svrstpth){
 	m5rast<-base;m5rast[cid]<-civ
 	filtpars<-getFilter(sss,seas,seasons,rpth)
 	spfilt<-readOGR(filtpars$dsn,filtpars$layer)
-	m5rast_filt<-addSpatialFilter(rast=m5rast,sss=sss,spfilt=spfilt)
+	m5rast_filt<-addSpatialFilter(rast=m5rast,spfilt=spfilt)
 	
 	#save the model, data, and predicted raster
 	wr<-try(writeRaster(m5rast_filt,filename=svrstpth,format="GTiff",overwrite=T),silent=T)
@@ -217,6 +229,10 @@ for(nnn in 1:nrow(spdf)){
 	
 	#save the data
 	save(m5data,file=paste(rpth,sesfldr,"/m5dataNew2",suffgeo,sufflog,"/",sss,"_",seas,".RData",sep=""))
+	
+	# HERE apply the mask
+	#load(paste0(rpth,"Mask05tables/",sss,"_mask05.RData"))
+	
 	
 	#fit the model
 	svpth<-paste(rpth,sesfldr,"/m5rasterNew2",suffgeo,sufflog,"/",sss,"_",seas,"_brtOptimPlot.jpg",sep="")
