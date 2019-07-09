@@ -94,16 +94,21 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 			domspdf<-subset(domdf,species==ss)
 			
 			if(!is.na(padusCat) && catValues=="all" && !is.na(geopolCat) && NROW(geopolValues)==1 && geopolRestrict==TRUE && byComp=="area"){ #special case where we can calculate unprotected areas
-				#calculate unprotected abundance
-				tbla<-subset(domspdf,!Area %in% paste(geopolCat,geopolValues))
-				tblb<-subset(domspdf,Area %in% paste(geopolCat,geopolValues))
-				#"Area","species","metric","sumCells","wgtSumMetric","wgtDensity","hectareDensity","wgtAbundance"
+				#calculate unprotected abundance as the difference between the domain categories and entire domain
+				tbla<-subset(domspdf,!Area %in% paste(geopolCat,geopolValues))		#protected
+				sumpresa<-sum(tbla$presenceHA, na.rm=TRUE)
+				tblb<-subset(domspdf,Area %in% paste(geopolCat,geopolValues))		#domain
+				sumpresb<-sum(tblb$presenceHA, na.rm=TRUE)
+				#"Area","species","metric","sumCells","wgtSumMetric","wgtDensity","hectareDensity","wgtAbundance","presenceHA"
 				tblc<-data.frame(Area="Unprotected",AreaSizeHA=tblb$AreaSizeHA-sum(tbla$AreaSizeHA,na.rm=T),
 						species=unique(tbla$species),metric=unique(tbla$metric),sumCells=tblb$sumCells-sum(tbla$sumCells,na.rm=T),
 						wgtSumMetric=tblb$wgtSumMetric-sum(tbla$wgtSumMetric,na.rm=T))
 				tblc$wgtAbundance<-round(tblc$wgtSumMetric/1089,3)
 				tblc$wgtDensity<-round(tblc$wgtSumMetric/tblc$sumCells,3)
 				tblc$hectareDensity<-round(tblc$wgtDensity/98.01,6)
+				tblc$presenceHA<-ifelse(metric==4,tblb$AreaSizeHA-sum(tbla$AreaSizeHA,na.rm=T),
+						ifelse(TRUE %in% is.na(tblb$presenceHA),NA,
+						ifelse(sumpresb>sumpresa,sumpresb-sumpresa,0)))		
 				tblc<-tblc[,names(tbla)]
 				tbld<-rbind(tbla,tblc)
 				tabund<-sum(tbld$wgtAbundance,na.rm=T)
@@ -281,8 +286,11 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,padusCat=NA,filtPeriod=
 		df<-sqlQuery(conn,sqlq)
 		if(metricVal==4){
 			df<-subset(df,!is.na(df$cellMetric))
+			presHAtotal<-NA
 		}else{
 			df$cellMetric<-ifelse(is.na(df$cellMetric),0,df$cellMetric)
+			presCellsTotal<-sum(subset(df,!is.na(df$metricValue))$ncells)
+			presHAtotal<-presCellsTotal*0.09
 		}
 		if(nrow(df)>0){
 			repfields<-c("Area","species","metric","sumCells","wgtSumMetric","wgtDensity","hectareDensity","wgtAbundance","percAreaSurveyed","presenceHA")
@@ -325,7 +333,8 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,padusCat=NA,filtPeriod=
 				wgtAbundance<-round(wgtSumMetric/1089,3)
 				wgtDensity<-round(wgtSumMetric/sumCells,3)
 				hectareDensity<-round(wgtDensity/98.01,6)
-				resdf<-data.frame(Area=paste(geopolField,geopolValue),sumCells=sumCells, sumNZCells=NA, wgtSumMetric=wgtSumMetric, wgtAbundance=wgtAbundance, wgtDensity=wgtDensity, hectareDensity=hectareDensity, presenceHA=NA)
+				presenceHA<-ifelse(is.na(presHAtotal),NA,presHAtotal)
+				resdf<-data.frame(Area=paste(geopolField,geopolValue),sumCells=sumCells, sumNZCells=NA, wgtSumMetric=wgtSumMetric, wgtAbundance=wgtAbundance, wgtDensity=wgtDensity, hectareDensity=hectareDensity, presenceHA=presenceHA)
 			}
 			resdf$species<-spcd
 			resdf$metric<-metricVal
