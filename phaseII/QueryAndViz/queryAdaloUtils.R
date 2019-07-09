@@ -285,18 +285,22 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,padusCat=NA,filtPeriod=
 			df$cellMetric<-ifelse(is.na(df$cellMetric),0,df$cellMetric)
 		}
 		if(nrow(df)>0){
-			repfields<-c("Area","species","metric","sumCells","wgtSumMetric","wgtDensity","hectareDensity","wgtAbundance","percAreaSurveyed")
+			repfields<-c("Area","species","metric","sumCells","wgtSumMetric","wgtDensity","hectareDensity","wgtAbundance","percAreaSurveyed","presenceHA")
 			if(is.data.frame(doidf)){
 				#sumCells, #wgtSumMetric, #wgtAverageMetric
 				df<-merge(df,doidf,by="padusObjId",all.x=T)
 				tcells<-aggregate(as.formula(paste0("ncells~",padusCat)),df,sum,na.rm=T)
 				names(tcells)<-gsub("ncells","sumCells",names(tcells))
+				tnzcells<-aggregate(as.formula(paste0("ncells~",padusCat)),subset(df,!is.na(metricValue) & metricValue>0),sum,na.rm=T)
+				names(tnzcells)<-gsub("ncells","sumNZCells",names(tnzcells))
+				resdf<-merge(tcells,tnzcells,by=padusCat)
 				tdf<-aggregate(as.formula(paste0("cellMetric~",padusCat)),df,sum,na.rm=T)
 				names(tdf)<-gsub("cellMetric","wgtSumMetric",names(tdf))
-				resdf<-merge(tdf,tcells,by=padusCat)
+				resdf<-merge(resdf,tdf,by=padusCat)
 				resdf$wgtAbundance<-round(resdf$wgtSumMetric/1089,3)
 				resdf$wgtDensity<-round(resdf$wgtSumMetric/resdf$sumCells,3)
 				resdf$hectareDensity<-round(resdf$wgtDensity/98.01,6)
+				resdf$presenceHA<-round(resdf$sumNZCells*0.09)  #the number of cells with abundance x 900 m2/ 10,000 m2
 				if(metricVal==4){
 					nc5<-sqlQuery(conn,baseintq)
 					ncdf<-merge(nc5,doidf,by="padusObjId",all.x=T)
@@ -321,7 +325,7 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,padusCat=NA,filtPeriod=
 				wgtAbundance<-round(wgtSumMetric/1089,3)
 				wgtDensity<-round(wgtSumMetric/sumCells,3)
 				hectareDensity<-round(wgtDensity/98.01,6)
-				resdf<-data.frame(Area=paste(geopolField,geopolValue),sumCells=sumCells, wgtSumMetric=wgtSumMetric, wgtAbundance=wgtAbundance, wgtDensity=wgtDensity, hectareDensity=hectareDensity)
+				resdf<-data.frame(Area=paste(geopolField,geopolValue),sumCells=sumCells, sumNZCells=NA, wgtSumMetric=wgtSumMetric, wgtAbundance=wgtAbundance, wgtDensity=wgtDensity, hectareDensity=hectareDensity, presenceHA=NA)
 			}
 			resdf$species<-spcd
 			resdf$metric<-metricVal
