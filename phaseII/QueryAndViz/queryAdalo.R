@@ -122,13 +122,13 @@ res<-makeQuestion(byComp="area",metric=4,period=1,species="canv",padusCat="mgrNa
 # NOTE that the abundance for R8 is the same calculated in Q3-alt
 subset(res,Area=="USFWSregion 8",select="wgtAbundance")
 
-subset(reserr$rawdata,Area=="USFWSregion 8",select="wgtAbundance")
+subset(reserr,Area=="USFWSregion 8",select="wgtAbundance")
 
 # Here is an example that does not enforce the domain:
 # Q6: compare San Pablo Bay vs the entire R6 for canv over winter.
 res<-makeQuestion(byComp="area",metric=4,period=0,species="canv",padusCat="unitName",catValues=c('San Pablo Bay National Wildlife Refuge'),geopolCat="USFWSregion",geopolValues=6,geopolRestrict=FALSE)
 #No density for R6?
-res$tbldens; res$pltdens
+res
 
 
 # Q7: Compare two regions (SFBNWR vs SacRiverNWR) in importance to a species (CANV during winter)
@@ -178,7 +178,7 @@ res
 #First, how is land ownership distributed in Region 6.
 
 #Pareto Chart - Land Ownerships by Area
-res$relArea <- res$AreaSizeHA/res$AreaSizeHA[31]*100
+res$relArea <- (res$AreaSizeHA/subset(res,Area=="USFWSregion 6")$AreaSizeHA)*100
 res$relArea <- round(res$relArea, digits=1)
 df <- data.frame(
 		x = res$Area[-length(res$Area)],
