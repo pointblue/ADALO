@@ -89,6 +89,9 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 	
 	#calculate relative abundance
 	if(nrow(domdf)>1){
+		tabund<-sum(domdf$wgtAbundance,na.rm=T)
+		tabundta<-sum(subset(domdf,!Area %in% paste(geopolCat,geopolValues))$wgtAbundance,na.rm=T)
+		
 		domdfout<-data.frame()
 		for(ss in species){
 			domspdf<-subset(domdf,species==ss)
@@ -119,15 +122,13 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 			}else if(!is.na(padusCat) && !is.na(geopolCat)){# both padus AND geopol present
 				#simply assign NA to geopols and calculate the relative abundance of all remaining 
 				tbla<-subset(domspdf,!Area %in% paste(geopolCat,geopolValues))
-				tabund<-sum(tbla$wgtAbundance,na.rm=T)
-				tbla$relAbundance<-round(tbla$wgtAbundance*100/tabund,3)
+				tbla$relAbundance<-round(tbla$wgtAbundance*100/tabundta,3)
 				tblb<-subset(domspdf,Area %in% paste(geopolCat,geopolValues))
 				tblb$relAbundance<-NA
 				domspdf<-rbind(tbla,tblb)
 				domdfout<-rbind(domdfout,domspdf)
 			}else{# either padus or geopol present
 				#a simple comparison of relative abundance between selected categories
-				tabund<-sum(domspdf$wgtAbundance,na.rm=T)
 				domspdf$relAbundance<-round(domspdf$wgtAbundance*100/tabund,3)
 				domdfout<-rbind(domdfout,domspdf)
 			}
@@ -197,11 +198,12 @@ makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt
 					}
 					res<-pltabun
 				}else{	#abundance by species as a table
-					abundvars<-c("Area","relAbundance","species")
+					abundvars<-c("Area","species","relAbundance")
 					tblabund<-reshape(domdf[,abundvars],idvar="species",timevar="Area",direction="wide")
 					names(tblabund)<-gsub("relAbundance.","",names(tblabund))
 					tblabund$Source<-dataSource
 					tblabund<-replaceNAs(df=tblabund,defvar=c("species","Source"))
+					
 					res<-tblabund
 				}
 			}
