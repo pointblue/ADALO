@@ -56,7 +56,7 @@ savepth<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePr
 load(file="//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/warehouse/basetable.RData")
 spp<-c("BAIS","BLRA","BOBO","BUOW","CANV","CCLO","FEHA","LBCU","LETE","MAGO","MOPL","NOPI","RIRA","SACR","SNPL","SPPI","TRBL","WIFL")
 flpthm4<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/m4rasterNew/asTables/";m4fls<-list.files(flpthm4)
-flpthm5<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/finalFits_metric5/asTables/";m5fls<-list.files(flpthm5)
+flpthm5<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/finalFits_metric5/June2019/asTables/";m5fls<-list.files(flpthm5)
 flpthhapet<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/hapet/asTables/";hapetfls<-list.files(flpthhapet)
 flpthecn<-"//prbo.org/Data/Home/Petaluma/lsalas/Documents/lsalas/IandMR8/RefugePrioritization/Phase2/ecn/asTables/";ecnfls<-list.files(flpthecn)
 
