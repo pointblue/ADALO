@@ -192,6 +192,8 @@ makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt
 					if(NROW(unique(domdf$Area))>1){
 						nc<-ifelse(NROW(unique(domdf$Area))%in% c(2,4),2,3)
 						pltabun<-pltabun + facet_wrap(~Area,ncol=nc,scales="free")
+					}else{ 	#just 1 location, but still adding the strip with location name
+						pltabun<-pltabun + facet_wrap(~Area)
 					}
 					res<-pltabun
 				}else{	#abundance by species as a table
