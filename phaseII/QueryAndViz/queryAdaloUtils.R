@@ -184,7 +184,11 @@ makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt
 				}
 			}else{	#abundance by species
 				if(outt=="plot"){	#abundance by species as a plot
-					pltabun<-ggplot(data=domdf,aes(x=species,y=wgtAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Abundance index")
+					#sort species by abundance
+					domdf<-within(domdf,{
+								species<-reorder(species,wgtAbundance)
+							})
+					pltabun<-ggplot(data=domdf,aes(x=species,y=wgtAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Total Abundance Index")
 					if(NROW(unique(domdf$Area))>1){
 						nc<-ifelse(NROW(unique(domdf$Area))%in% c(2,4),2,3)
 						pltabun<-pltabun + facet_wrap(~Area,ncol=nc,scales="free")
@@ -220,7 +224,7 @@ makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt
 				}
 			}else{	#abundance
 				if(outt=="plot"){
-					pltabun<-ggplot(data=domdf,aes(x=Area,y=wgtAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Abundance index")
+					pltabun<-ggplot(data=domdf,aes(x=Area,y=wgtAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Total Abundance Index")
 					if(NROW(unique(domdf$species))>1){
 						nc<-ifelse(NROW(unique(domdf$species))%in% c(2,4),2,3)
 						pltabun<-pltabun + facet_wrap(~species,ncol=nc,scales="free")
