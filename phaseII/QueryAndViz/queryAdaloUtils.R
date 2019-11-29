@@ -463,3 +463,52 @@ printToURL<-function(pt,imgName,wd=480,hg=480,baseurl="http://ec2-18-144-7-236.u
 	urlr<-paste0(baseurl,imgName)
 	return(urlr)
 }
+
+## This function fortifies the results table by an additional padusCat, optionally filters by a value in that newpadusCat, and optionally re-calculates relative abundance
+# rdf is the results data.frame
+# areaCat is the original padusCat used to query the data
+# addCat is the name of the padusCat to add
+# filterByCat is a string of values to filter by the new category
+# recalcRelAbund is a boolean to determine if relative abundance should be re-calculated after the filter
+fortifyFilterRes<-function(rdf,areaCat,addCat=NA,filterByCat=NA,recalcRelAbund=TRUE){
+	if(!is.na(addCat)){
+		## There may be a large number of areaCat values, so let's loop by segments of 50
+		nseg<-ceiling(nrow(rdf)/50)
+		conn<-odbcConnect("whadalo")
+		startseg<-1
+		fortable<-data.frame()
+		for(ss in 1:nseg){
+			if(ss*50 > nrow(rdf)){
+				endseg<-nrow(rdf)
+			}else{
+				endseg<-ss*50
+			}
+			#need to escape all '
+			acVals<-as.character(rdf$Area[startseg:endseg])
+			acVals<-gsub("'","\\\\'",acVals)
+			acstr<-paste0("'",paste(acVals,collapse="','"),"'")
+			sqlq<-paste0("select ",areaCat,", ",addCat," from paduscats where ",areaCat," in (",acstr,")")
+			ftbl<-sqlQuery(conn,sqlq)
+			names(ftbl)<-c("Area","newPCat")
+			fortable<-rbind(fortable,ftbl)
+			startseg<-endseg+1
+		}
+		odbcClose(conn)
+		rdf$Area<-as.character(rdf$Area)
+		fortable$Area<-as.character(fortable$Area)
+		fdf<-merge(rdf,fortable,by="Area",all.x=T)
+		fdf$newPCat<-ifelse(is.na(fdf$newPCat),"UNKN",as.character(fdf$newPCat))
+		fdf<-unique(fdf)
+		if(!is.na(filterByCat)){ #if there are strings to filter by...
+			fdf<-subset(fdf,newPCat %in% filterByCat)
+			if(recalcRelAbund){
+				tabund<-sum(fdf$wgtAbundance)
+				fdf$relAbundance<-fdf$wgtAbundance/tabund
+			}
+		}
+		names(fdf)<-gsub("newPCat",addCat,names(fdf))
+		return(fdf)
+	}else{
+		return(rdf)
+	}
+}
