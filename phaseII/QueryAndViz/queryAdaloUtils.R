@@ -94,7 +94,7 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 		
 		domdfout<-data.frame()
 		for(ss in species){
-			domspdf<-subset(domdf,species==ss)
+			domspdf<-subset(domdf,species==tolower(ss))
 			
 			if(!is.na(padusCat) && catValues=="all" && !is.na(geopolCat) && NROW(geopolValues)==1 && geopolRestrict==TRUE && byComp=="area"){ #special case where we can calculate unprotected areas
 				#calculate unprotected abundance as the difference between the domain categories and entire domain
