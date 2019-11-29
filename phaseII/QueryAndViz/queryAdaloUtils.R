@@ -91,6 +91,7 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 	if(nrow(domdf)>1){
 		tabund<-sum(domdf$wgtAbundance,na.rm=T)
 		tabundta<-sum(subset(domdf,!Area %in% paste(geopolCat,geopolValues))$wgtAbundance,na.rm=T)
+		tabundtg<-tabund-tabundta #ONLY if there is a single geopolCat!!!
 		
 		domdfout<-data.frame()
 		for(ss in species){
@@ -119,12 +120,12 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 				tblb$relAbundance<-100
 				domspdf<-rbind(tbld,tblb)
 				domdfout<-rbind(domdfout,domspdf)
-			}else if(!is.na(padusCat) && !is.na(geopolCat)){# both padus AND geopol present
+			}else if(!is.na(padusCat) && !is.na(geopolCat) && NROW(geopolCat)==1){# both padus AND geopol present, but only one geopol cat. How to extend to several? 
 				#simply assign NA to geopols and calculate the relative abundance of all remaining 
 				tbla<-subset(domspdf,!Area %in% paste(geopolCat,geopolValues))
 				tbla$relAbundance<-round(tbla$wgtAbundance*100/tabundta,3)
 				tblb<-subset(domspdf,Area %in% paste(geopolCat,geopolValues))
-				tblb$relAbundance<-NA
+				tblb$relAbundance<-round(tblb$wgtAbundance*100/tabundtg,3)
 				domspdf<-rbind(tbla,tblb)
 				domdfout<-rbind(domdfout,domspdf)
 			}else{# either padus or geopol present
