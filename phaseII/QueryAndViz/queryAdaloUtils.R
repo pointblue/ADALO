@@ -300,7 +300,7 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,padusCat=NA,filtPeriod=
 			presCellsTotal<-sum(subset(df,!is.na(df$metricValue))$ncells)
 			presHAtotal<-presCellsTotal*0.09
 		}
-		if(nrow(df)>0){
+		if(nrow(df)>0 && presCellsTotal>0){
 			repfields<-c("Area","species","metric","sumCells","wgtSumMetric","wgtDensity","hectareDensity","wgtAbundance","percAreaSurveyed","presenceHA")
 			if(is.data.frame(doidf)){
 				#sumCells, #wgtSumMetric, #wgtAverageMetric
@@ -347,7 +347,7 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,padusCat=NA,filtPeriod=
 			resdf$species<-spcd
 			resdf$metric<-metricVal
 			resdf<-resdf[,repfields]
-		}else{resdf<-NA}	#when m4 has no data for this locale
+		}else{resdf<-NA}	#when adalo has no data for this locale
 	}else{resdf<-NA}	#bad request: metric is not 4, 5, 6, or 7
 	return(resdf)
 }
