@@ -148,7 +148,8 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 #	if the string is "species" each row is a species, each column a different area, and cell value is as prescribed in outp
 # outp 				is either dens (density) or abund (abundance index) - the content of cells in the output table
 # outt 				indicates if to return a table or plot: string table or plot. Defaults to "table"
-makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt="table"){
+# plotSorted		indicates if the output should be sorted by the output parameter (outp) descending
+makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt="table",plotSorted=TRUE){
 	if(nrow(domdf)==1){
 		res<-"The results data.frame has only 1 row - nothing to contrast"
 	}else if(!is.data.frame(domdf)){
@@ -157,6 +158,9 @@ makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt
 		dataSource<-unique(domdf$metric)
 		if(reportAreaSurv==TRUE && unique(domdf$metric)=="Empirical" && byComp=="area"){	#compare areas by percent area surveyed.
 			if(outt=="plot"){ #percAreaSuv as plot
+				if(plotSorted==TRUE){
+					domdf$Area<-reorder(domdf$Area,domdf$percAreaSurveyed)
+				}
 				res<-ggplot(data=domdf,aes(x=Area,y=percAreaSurveyed)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="% area surveyed")
 				if(NROW(unique(domdf$species))>1){
 					ns<-ifelse(NROW(unique(domdf$species))%in% c(2,4),2,3)
@@ -170,6 +174,9 @@ makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt
 		}else if(byComp=="species"){	#comparison by species
 			if(outp=="dens"){	#density by species
 				if(outt=="plot"){	#density by species as plot
+					if(plotSorted==TRUE){
+						domdf$species<-reorder(domdf$species,domdf$hectareDensity)
+					}
 					pltdens<-ggplot(data=domdf,aes(x=species,y=hectareDensity)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Density (birds/Ha)")
 					if(NROW(unique(domdf$Area))>1){
 						nc<-ifelse(NROW(unique(domdf$Area))%in% c(2,4),2,3)
@@ -187,9 +194,9 @@ makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt
 			}else{	#abundance by species
 				if(outt=="plot"){	#abundance by species as a plot
 					#sort species by abundance
-					domdf<-within(domdf,{
-								species<-reorder(species,wgtAbundance)
-							})
+					if(plotSorted==TRUE){
+						domdf$species<-reorder(domdf$species,domdf$wgtAbundance)
+					}
 					pltabun<-ggplot(data=domdf,aes(x=species,y=wgtAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Total Abundance Index")
 					if(NROW(unique(domdf$Area))>1){
 						nc<-ifelse(NROW(unique(domdf$Area))%in% c(2,4),2,3)
@@ -214,6 +221,9 @@ makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt
 			aggvars<-c("Area","AreaSizeHA","species")
 			if(outp=="dens"){
 				if(outt=="plot"){
+					if(plotSorted==TRUE){
+						domdf$Area<-reorder(domdf$Area,domdf$hectareDensity)
+					}
 					pltdens<-ggplot(data=domdf,aes(x=Area,y=hectareDensity)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Density (birds/Ha)")
 					if(NROW(unique(domdf$species))>1){
 						nc<-ifelse(NROW(unique(domdf$species))%in% c(2,4),2,3)
@@ -229,6 +239,9 @@ makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt
 				}
 			}else{	#abundance
 				if(outt=="plot"){
+					if(plotSorted==TRUE){
+						domdf$Area<-reorder(domdf$Area,domdf$wgtAbundance)
+					}
 					pltabun<-ggplot(data=domdf,aes(x=Area,y=wgtAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Total Abundance Index")
 					if(NROW(unique(domdf$species))>1){
 						nc<-ifelse(NROW(unique(domdf$species))%in% c(2,4),2,3)
