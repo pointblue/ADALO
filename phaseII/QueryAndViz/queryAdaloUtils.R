@@ -72,6 +72,16 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 			}
 		}
 		if(!is.na(geopolCat) && !is.na(geopolValues) && NROW(geopolCat)==1){
+			if(geopolValues=="all"){
+				#query all values of the geopol category and re-assign to geopolValues
+				gpdict<-getDictionary(species=FALSE,padus=FALSE,jurisdiction=TRUE)$jurisdiction
+				jurs<-as.character(unique(gpdict$Jurisdiction))
+				jursdf<-ldply(.data=jurs,.fun=function(x,geopolCat){
+							tdf=data.frame(Jurisdiction=x,use=grepl(x,geopolCat));
+							return(tdf)},geopolCat=geopolCat)
+				subjurs<-subset(jursdf,use==TRUE)$Jurisdiction
+				geopolValues<-as.integer(subset(gpdict,Jurisdiction==subjurs)$Value)
+			}
 			for(gg in geopolValues){
 				dfgeo<-getValuesByMetric(spcd=tolower(ss),metricVal=metric,conn=conn,doidf=NA,filtPeriod=period,geopolField=geopolCat,geopolValue=gg)
 				if(!is.na(dfgeo) && nrow(dfgeo)>0){
@@ -287,7 +297,7 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,padusCat=NA,filtPeriod=
 			}else{
 				baseintq<-paste(baseintq,"and ")
 			}
-			if(is.character(geopolValue)){
+			if(is.character(geopolValue) && tolower(geopolValue) != "all"){
 				baseintq<-paste(baseintq,geopolField," in ('",geopolValue,"')",sep="")
 			}else{
 				baseintq<-paste(baseintq,geopolField," in (",geopolValue,")",sep="")
