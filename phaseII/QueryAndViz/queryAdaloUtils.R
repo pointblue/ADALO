@@ -318,6 +318,7 @@ getValuesByMetric<-function(conn,spcd,metricVal,doidf=NA,padusCat=NA,filtPeriod=
 		df<-sqlQuery(conn,sqlq)
 		if(metricVal==4){
 			df<-subset(df,!is.na(df$cellMetric))
+			presCellsTotal<-sum(subset(df,!is.na(df$metricValue))$ncells)
 			presHAtotal<-NA
 		}else{
 			df$cellMetric<-ifelse(is.na(df$cellMetric),0,df$cellMetric)
