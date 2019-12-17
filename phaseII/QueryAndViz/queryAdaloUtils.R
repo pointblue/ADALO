@@ -523,7 +523,7 @@ fortifyFilterRes<-function(rdf,areaCat,addCat=NA,filterByCat=NA,recalcRelAbund=T
 		fdf<-merge(rdf,fortable,by="Area",all.x=T)
 		fdf$newPCat<-ifelse(is.na(fdf$newPCat),"UNKN",as.character(fdf$newPCat))
 		fdf<-unique(fdf)
-		if(!is.na(filterByCat)){ #if there are strings to filter by...
+		if(!is.na(filterByCat[1])){ #if there are strings to filter by...
 			fdf<-subset(fdf,newPCat %in% filterByCat)
 			if(recalcRelAbund){
 				tabund<-sum(fdf$wgtAbundance)
