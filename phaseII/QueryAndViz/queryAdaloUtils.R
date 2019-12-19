@@ -159,7 +159,10 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 # outp 				is either dens (density) or abund (abundance index) - the content of cells in the output table
 # outt 				indicates if to return a table or plot: string table or plot. Defaults to "table"
 # plotSorted		indicates if the output should be sorted by the output parameter (outp) descending
-makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt="table",plotSorted=TRUE){
+# valueHighlight	a string that states which value in the plot should be a bar of the primary color (see colorsHighlight for details)
+# colorsHighlight	two strings indicating the hex number (so, they begin with #) of two colors. Default is c(#ca0020, #0571b0), where the first is the primary color and is 
+#					assigned to the value to highlight. See here for details (make sure to check the colorblind safe box): http://colorbrewer2.org/#type=diverging&scheme=RdBu&n=4
+makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt="table",plotSorted=TRUE, valueHighlight=NA, colorsHighlight=c("#ca0020", "#0571b0")){
 	if(nrow(domdf)==1){
 		res<-"The results data.frame has only 1 row - nothing to contrast"
 	}else if(!is.data.frame(domdf)){
@@ -171,7 +174,14 @@ makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt
 				if(plotSorted==TRUE){
 					domdf$Area<-reorder(domdf$Area,domdf$percAreaSurveyed)
 				}
-				res<-ggplot(data=domdf,aes(x=Area,y=percAreaSurveyed)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="% area surveyed")
+				if(!is.na(valueHighlight)){
+					domdf$areaColor<-ifelse(domdf$Area==valueHighlight,"primCol","secCol")
+					res<-ggplot(data=domdf,aes(x=Area,y=percAreaSurveyed)) + geom_bar(stat="identity",width = 0.6, aes(fill=areaColor)) + theme_bw() +
+							scale_fill_manual(values=colorsHighlight, guide=FALSE) + coord_flip() + labs(x="",y="% area surveyed")
+				}else{
+					res<-ggplot(data=domdf,aes(x=Area,y=percAreaSurveyed)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="% area surveyed")
+					
+				}
 				if(NROW(unique(domdf$species))>1){
 					ns<-ifelse(NROW(unique(domdf$species))%in% c(2,4),2,3)
 					pltsurv<-pltsurv + facet_wrap(~species,ncol=ns)
@@ -187,7 +197,13 @@ makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt
 					if(plotSorted==TRUE){
 						domdf$species<-reorder(domdf$species,domdf$hectareDensity)
 					}
-					pltdens<-ggplot(data=domdf,aes(x=species,y=hectareDensity)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Density (birds/Ha)")
+					if(!is.na(valueHighlight)){
+						domdf$speciesColor<-ifelse(domdf$species==valueHighlight,"primCol","secCol")
+						pltdens<-ggplot(data=domdf,aes(x=species,y=hectareDensity)) + geom_bar(stat="identity",width = 0.6, aes(fill=speciesColor)) + theme_bw() +
+								scale_fill_manual(values=colorsHighlight, guide=FALSE) + coord_flip() + labs(x="",y="Density (birds/Ha)")
+					}else{
+						pltdens<-ggplot(data=domdf,aes(x=species,y=hectareDensity)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Density (birds/Ha)")
+					}
 					if(NROW(unique(domdf$Area))>1){
 						nc<-ifelse(NROW(unique(domdf$Area))%in% c(2,4),2,3)
 						pltdens<-pltdens + facet_wrap(~Area,ncol=nc,scales="free")
@@ -207,7 +223,13 @@ makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt
 					if(plotSorted==TRUE){
 						domdf$species<-reorder(domdf$species,domdf$wgtAbundance)
 					}
-					pltabun<-ggplot(data=domdf,aes(x=species,y=wgtAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Total Abundance Index")
+					if(!is.na(valueHighlight)){
+						domdf$speciesColor<-ifelse(domdf$species==valueHighlight,"primCol","secCol")
+						pltabun<-ggplot(data=domdf,aes(x=species,y=wgtAbundance)) + geom_bar(stat="identity",width = 0.6, aes(fill=speciesColor)) + theme_bw() +
+								scale_fill_manual(values=colorsHighlight, guide=FALSE) + coord_flip() + labs(x="",y="Total Abundance Index")
+					}else{
+						pltabun<-ggplot(data=domdf,aes(x=species,y=wgtAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Total Abundance Index")
+					}
 					if(NROW(unique(domdf$Area))>1){
 						nc<-ifelse(NROW(unique(domdf$Area))%in% c(2,4),2,3)
 						pltabun<-pltabun + facet_wrap(~Area,ncol=nc,scales="free")
@@ -234,7 +256,13 @@ makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt
 					if(plotSorted==TRUE){
 						domdf$Area<-reorder(domdf$Area,domdf$hectareDensity)
 					}
-					pltdens<-ggplot(data=domdf,aes(x=Area,y=hectareDensity)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Density (birds/Ha)")
+					if(!is.na(valueHighlight)){
+						domdf$areaColor<-ifelse(domdf$Area==valueHighlight,"primCol","secCol")
+						pltdens<-ggplot(data=domdf,aes(x=Area,y=hectareDensity)) + geom_bar(stat="identity",width = 0.6, aes(fill=areaColor)) + theme_bw() +
+								scale_fill_manual(values=colorsHighlight, guide=FALSE) + coord_flip() + labs(x="",y="Density (birds/Ha)")
+					}else{
+						pltdens<-ggplot(data=domdf,aes(x=Area,y=hectareDensity)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Density (birds/Ha)")
+					}
 					if(NROW(unique(domdf$species))>1){
 						nc<-ifelse(NROW(unique(domdf$species))%in% c(2,4),2,3)
 						pltdens<-pltdens + facet_wrap(~species,ncol=nc,scales="free")
@@ -252,7 +280,13 @@ makeContrast<-function(domdf,reportAreaSurv=FALSE,byComp="area",outp="dens",outt
 					if(plotSorted==TRUE){
 						domdf$Area<-reorder(domdf$Area,domdf$wgtAbundance)
 					}
-					pltabun<-ggplot(data=domdf,aes(x=Area,y=wgtAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Total Abundance Index")
+					if(!is.na(valueHighlight)){
+						domdf$areaColor<-ifelse(domdf$Area==valueHighlight,"primCol","secCol")
+						pltabun<-ggplot(data=domdf,aes(x=Area,y=wgtAbundance)) + geom_bar(stat="identity",width = 0.6, aes(fill=areaColor)) + theme_bw() +
+								scale_fill_manual(values=colorsHighlight, guide=FALSE) + coord_flip() + labs(x="",y="Total Abundance Index")
+					}else{
+						pltabun<-ggplot(data=domdf,aes(x=Area,y=wgtAbundance)) + geom_bar(stat="identity",width = 0.6) + coord_flip() + labs(x="",y="Total Abundance Index")
+					}
 					if(NROW(unique(domdf$species))>1){
 						nc<-ifelse(NROW(unique(domdf$species))%in% c(2,4),2,3)
 						pltabun<-pltabun + facet_wrap(~species,ncol=nc,scales="free")
