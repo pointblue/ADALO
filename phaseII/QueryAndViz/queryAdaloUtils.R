@@ -487,6 +487,7 @@ getDictionary<-function(species=FALSE,padus=TRUE,jurisdiction=FALSE){
 ## This function beautifies manager name
 # mn is the manager whose name is being beautified
 getManagerName<-function(mn){
+	mn<-as.character(mn)
 	mgrNam<-ifelse(mn %in% c("ARS","DOE","NOAA","NRCS","OTHF"),"Fed - Other",
 		ifelse(mn %in% c("BIA"),"Fed - BIA",
 			ifelse(mn %in% c("SDNR","SDC","SDOL","SFW","SLB","SPR","OTHS"),"State",
