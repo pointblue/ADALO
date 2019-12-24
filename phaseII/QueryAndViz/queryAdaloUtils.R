@@ -585,12 +585,12 @@ fortifyFilterRes<-function(rdf,areaCat,addCat=NA,filterByCat=NA,recalcRelAbund=T
 ## customizing the plot...
 # transposePlot defaults to TRUE to transpose the plot
 # addYVals defaults to TRUE to add the geom_text of the value on top of each bar
-# addMetricName is either the metric value, which is then added as text to the plot, or NA to omit
+# addNote is either a string, which is then added as text to the plot, or NA to omit
 # highCat the category value for bar to highlightCat, or NA
 # highColor the color to use for highlight (set default from colorBrewer), or NA
 # paretoCol to change the color of the pareto line and points, defaults to black
 makePareto<-function(df, includesGeopol=NA, xvar="Area", yvar="relAbundance",barsOnly=FALSE, dataOnly=FALSE, xLabel="PAD-US Category Levels",
-		transposePlot=TRUE,fillColor="#0571b0",addYVals=TRUE,addMetric=NA,highCat=NA,highColor="#ca0020",paretoColor="black"){
+		transposePlot=TRUE,fillColor="#0571b0",addYVals=TRUE,addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black"){
 	
 	if(!is.na(includesGeopol)){
 		df<-subset(df,Area != geopolCat)
@@ -641,8 +641,8 @@ makePareto<-function(df, includesGeopol=NA, xvar="Area", yvar="relAbundance",bar
 			parplot<-parplot  + geom_text(aes(label = y, y = y + max(res[,yvar])*0.05),position = position_dodge(0.9),vjust = 0,size=2.8)
 		}
 		
-		if(!is.na(addMetricName)){
-			parplot<-parplot + annotate("text", x = 1, y = max(res[,yvar])*0.9, label = addMetricName,size=5)
+		if(!is.na(addNote)){
+			parplot<-parplot + annotate("text", x = nrow(dfp)-1, y = max(res[,yvar])*0.8, label = addNote,size=5, hjust=1)
 		}
 	}
 		
