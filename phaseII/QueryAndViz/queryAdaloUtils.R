@@ -575,22 +575,23 @@ fortifyFilterRes<-function(rdf,areaCat,addCat=NA,filterByCat=NA,recalcRelAbund=T
 ## This function makes a Pareto chart from the data
 # df is the data.frame with the data to plot, presumably from a call to makeQuestion
 # geopolVal indicates if there is a category in df that has the totals/ global values of density, relative abundance, 
-#   and area, defaults to NA (= No). Otherwise geopolVal is the name of the encompassing geopolitica domain, and df is summarized taking into account this total 
+#   and area, defaults to NA (= No). Otherwise geopolVal is the name of the encompassing geopolitica domain, and df is summarized taking into account this total. 
+#   For example: geopolVal = “USFWSregion 6”. You can see this at the bottom of the table returned from the makeQuestion call when using a geopolCat+geopolValue in the call. 
 # xvar defaults to Area (should always be Area, no?)
-# yvar is the dependent variable: avgEncounterRate, totalAbundanceIndex, relArea (labels: Density Index or % Total Abundance Index or % Total Area)
-# barsOnly default FALSE, but if TRUE, then the barchart only 
+# yvar is the dependent variable: avgEncounterRate, totalAbundanceIndex, relArea (label is automatically set to: “Density Index” or “% Total Abundance Index” or “% Total Area”)
+# barsOnly default FALSE, but if TRUE, then only a barchart is produced 
 # dataOnly returns the data ready for the plot, but not the plot
 # xlabel to provide a beautified x-label (defaults to "PAD-US Category Levels", but should be something like "PAD-US Land Manager")
-# fillColor default bar fill color (set default from colorBrewer)
-## customizing the plot...
-# transposePlot defaults to TRUE to transpose the plot
-# addYVals defaults to TRUE to add the geom_text of the value on top of each bar
-# addNote is either a string, which is then added as text to the plot, or NA to omit
-# highCat the category value for bar to highlightCat, or NA
-# highColor the color to use for highlight (set default from colorBrewer), or NA
-# paretoCol to change the color of the pareto line and points, defaults to black
+# fillColor is the default bar fill color (default is a colorblind-friendly value from colorBrewer)
+## Customizing the plot...
+# 	transposePlot defaults to FALSE to transpose the plot
+# 	addYVals defaults to TRUE to add the text of the value on top of each bar
+# 	addNote is either a string, which is then added as an annotation to the plot, or NA to omit
+# 	highCat the category value for bar to highlight, or NA. For example: “Fed – FWS”. Must be one of the values in the column Area (i.e., one of the values in the x-axis).
+# 	highColor the color to use for highlighting (default is a colorblind-friendly value from colorBrewer that complements fillColor), or NA
+# 	paretoCol to change the color of the pareto line and points, defaults to black
 makePareto<-function(df, includesGeopol=NA, xvar="Area", yvar="relAbundance",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Category Levels",
-		transposePlot=TRUE,fillColor="#0571b0",addYVals=TRUE,addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black"){
+		transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE,addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black"){
 	
 	if(!is.na(includesGeopol)){
 		df<-subset(df,Area != includesGeopol)
