@@ -577,7 +577,7 @@ fortifyFilterRes<-function(rdf,areaCat,addCat=NA,filterByCat=NA,recalcRelAbund=T
 # geopolVal indicates if there is a category in df that has the totals/ global values of density, relative abundance, 
 #   and area, defaults to NA (= No). Otherwise geopolVal is the name of the encompassing geopolitica domain, and df is summarized taking into account this total 
 # xvar defaults to Area (should always be Area, no?)
-# yvar is the dependent variable: avgEncounterRate, totalAbundanceIndex, AreaSizeHA (labels: Density Index or % Total Abundance Index or % Total Area)
+# yvar is the dependent variable: avgEncounterRate, totalAbundanceIndex, relArea (labels: Density Index or % Total Abundance Index or % Total Area)
 # barsOnly default FALSE, but if TRUE, then the barchart only 
 # dataOnly returns the data ready for the plot, but not the plot
 # xlabel to provide a beautified x-label (defaults to "PAD-US Category Levels", but should be something like "PAD-US Land Manager")
@@ -589,17 +589,20 @@ fortifyFilterRes<-function(rdf,areaCat,addCat=NA,filterByCat=NA,recalcRelAbund=T
 # highCat the category value for bar to highlightCat, or NA
 # highColor the color to use for highlight (set default from colorBrewer), or NA
 # paretoCol to change the color of the pareto line and points, defaults to black
-makePareto<-function(df, includesGeopol=NA, xvar="Area", yvar="relAbundance",barsOnly=FALSE, dataOnly=FALSE, xLabel="PAD-US Category Levels",
+makePareto<-function(df, includesGeopol=NA, xvar="Area", yvar="relAbundance",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Category Levels",
 		transposePlot=TRUE,fillColor="#0571b0",addYVals=TRUE,addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black"){
 	
 	if(!is.na(includesGeopol)){
-		df<-subset(df,Area != geopolCat)
+		df<-subset(df,Area != includesGeopol)
 	}
 	dfp <- df %>% 
 			group_by(Area,metric) %>% 
 			dplyr::summarise(totalCells=sum(sumCells),AreaSizeHA=sum(presenceHA),avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtAbundance))
 	dfp$relArea <- dfp$totalCells*100/sum(dfp$totalCells)
 	dfp$relArea <- round(dfp$relArea, digits=1)
+	
+	dfp<-as.data.frame(dfp)
+	dfp[,xvar]<-reorder(dfp[,xvar],abs(dfp[,yvar]-max(dfp[,yvar])))
 	
 	if(dataOnly){
 		parplot<-dfp
@@ -610,21 +613,22 @@ makePareto<-function(df, includesGeopol=NA, xvar="Area", yvar="relAbundance",bar
 		if(barsOnly){	#no pareto, only bar plot
 			if(!is.na(highCat)){	#highlighting one category
 				dfp$barColor<-ifelse(dfp[,xvar]==highCat,highColor,fillColor)
-				parplot<-ggplot(dfp, aes(x=xvar, y=yvar)) + geom_bar(fill = barColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() +
-						scale_fill_manual(values=colorsHighlight, guide=FALSE)
+				dfp<-dfp[order(dfp[,yvar],decreasing=T),]
+				parplot<-ggplot(dfp, aes(x=dfp[,xvar], y=dfp[,yvar])) + geom_bar(fill = dfp$barColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() 
 			}else{	#no highlights
-				parplot<-ggplot(dfp, aes(x=xvar, y=yvar)) + geom_bar(fill = fillColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw()
+				parplot<-ggplot(dfp, aes(x=dfp[,xvar], y=dfp[,yvar])) + geom_bar(fill = fillColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw()
 			}
 			
 		}else{ # Pareto plot...
 			if(!is.na(highCat)){	#highlighting one category
 				dfp$barColor<-ifelse(dfp[,xvar]==highCat,highColor,fillColor)
-				parplot<-ggplot(dfp, aes(x=xvar, y=yvar)) + 
-						stat_pareto(point.color = paretoColor,point.size = 2, line.color = "black", bars.fill = barColor) + 
-						labs(x=xlabel,y=ylabel) + theme_bw() + scale_fill_manual(values=colorsHighlight, guide=FALSE)
+				dfp<-dfp[order(dfp[,yvar],decreasing=T),]
+				parplot<-ggplot(dfp, aes(x=dfp[,xvar], y=dfp[,yvar])) + 
+						stat_pareto(point.color = paretoColor,point.size = 2, line.color = paretoColor, bars.fill = dfp$barColor) + 
+						labs(x=xlabel,y=ylabel) + theme_bw() 
 			}else{	#no highlights
-				parplot<-ggplot(dfp, aes(x=xvar, y=yvar)) + 
-						stat_pareto(point.color = paretoColor,point.size = 2, line.color = "black", bars.fill = fillColor) + 
+				parplot<-ggplot(dfp, aes(x=dfp[,xvar], y=dfp[,yvar])) + 
+						stat_pareto(point.color = paretoColor, point.size = 2, line.color = paretoColor, bars.fill = fillColor) + 
 						labs(x=xlabel,y=ylabel) + theme_bw()
 			}
 			
@@ -632,17 +636,17 @@ makePareto<-function(df, includesGeopol=NA, xvar="Area", yvar="relAbundance",bar
 		
 		## Beautifying...
 		if(transposePlot){
-			parplot<-parplot + coord_flip()
+			parplot<-parplot + coord_flip() 
 		}else{
 			parplot<-parplot + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 		}
 		
 		if(addYVals){
-			parplot<-parplot  + geom_text(aes(label = y, y = y + max(res[,yvar])*0.05),position = position_dodge(0.9),vjust = 0,size=2.8)
+			parplot<-parplot  + geom_text(aes(label = dfp[,yvar], y = dfp[,yvar] + max(dfp[,yvar])*0.05),position = position_dodge(0.9),vjust = 0,size=2.8)
 		}
 		
 		if(!is.na(addNote)){
-			parplot<-parplot + annotate("text", x = nrow(dfp)-1, y = max(res[,yvar])*0.8, label = addNote,size=5, hjust=1)
+			parplot<-parplot + annotate("text", x = nrow(dfp)-1, y = max(dfp[,yvar])*0.8, label = addNote,size=5, hjust=1)
 		}
 	}
 		
