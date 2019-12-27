@@ -53,6 +53,7 @@ makeQuestion<-function(byComp="area",metric=4,period=NA,species,padusCat=NA,catV
 		}
 		poisql<-paste0("select ",padusCat,",padusObjId from paduscats where ",filtvals)
 		doidf<-sqlQuery(conn,poisql)
+		
 		doidf<-aggManyNames(doidf,mcat=padusCat,mnames=catValues)
 	}
 	
@@ -590,56 +591,84 @@ fortifyFilterRes<-function(rdf,areaCat,addCat=NA,filterByCat=NA,recalcRelAbund=T
 # 	highCat the category value for bar to highlight, or NA. For example: “Fed – FWS”. Must be one of the values in the column Area (i.e., one of the values in the x-axis).
 # 	highColor the color to use for highlighting (default is a colorblind-friendly value from colorBrewer that complements fillColor), or NA
 # 	paretoCol to change the color of the pareto line and points, defaults to black
-makePareto<-function(df, includesGeopol=NA, xvar="Area", yvar="totalAbundanceIndex",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Category Levels",
+makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Category Levels",
 		transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE,addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black"){
 	
-	if(!is.na(includesGeopol)){
-		df<-subset(df,Area != includesGeopol)
-	}
-	
 	if(xvar=="Area"){
+		if(is.na(geopolVal)){
+			#do nothing to df
+		}else{
+			df<-subset(df,Area != geopolVal)
+		}
 		dfp <- df %>% 
 				group_by(Area,metric) %>% 
 				dplyr::summarise(totalCells=sum(sumCells),AreaSizeHA=sum(presenceHA),avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtAbundance))
 		dfp$relArea <- dfp$totalCells*100/sum(dfp$totalCells)
 		dfp$relArea <- round(dfp$relArea, digits=1)
 		
-	}else{ 	#species
-		dfp <- df %>% 
-				group_by(species,metric) %>% 
-				dplyr::summarise(totalCells=sumCells,AreaSizeHA=AreaSizeHA,avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=round(relAbundance))
-		dfp$relArea <- 100
-		
-	}
-		
+	}else if(xvar=="species"){
+		if(is.na(geopolVal)){
+			dfp <- df %>% 
+					group_by(species,metric) %>% 
+					dplyr::summarise(totalCells=sumCells,AreaSizeHA=AreaSizeHA,avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=round(relAbundance))
+			dfp$relArea <- 100
+		}else if(!is.na(geopolVal) && NROW(geopolVal)==1){
+			#calculate a relWgtAbundance using the total abundance for the geopol
+			#df will have 2 rows per species: one for the padus value and one for the geopol domain
+			dfa<-subset(df,Area!=geopolVal)
+			dfb<-subset(df,Area==geopolVal)
+			dfb<-dfb[,c("species","sumCells","wgtSumMetric","wgtDensity","wgtAbundance","presenceHA","AreaSizeHA","relAbundance")]
+			names(dfb)<-c("species","domainSumCells","domainWgtSumMetric","domainWgtDensity","domainWgtAbundance","domainPresenceHA",
+					"domainAreaSizeHA","domainRelAbundance")
+			df<-merge(dfa,dfb,by="species",all.x=T)
+			
+			#there is a confining geopol and this is interpreted as a comparison of relative abundances/densities/areas vs the domain
+			dfp <- df %>% 
+					group_by(species,metric) %>% 
+					dplyr::summarise(totalCells=round(sumCells*100/domainSumCells),AreaSizeHA=round(AreaSizeHA*100/domainAreaSizeHA),
+							avgEncounterRate=round(wgtDensity*100/domainWgtDensity),totalAbundanceIndex=round(relAbundance*100/domainRelAbundance),
+							relArea<-round(presenceHA*100/domainPresenceHA))
+		}
+	}else{print("Warning: improper call to makePareto function? Wrong x-axis variable? More than one geopolical domain value in the data?")}
 	
+		
 	dfp<-as.data.frame(dfp)
-	dfp[,xvar]<-reorder(dfp[,xvar],abs(dfp[,yvar]-max(dfp[,yvar])))
+	dfp<-dfp[order(dfp[,yvar],decreasing=T),]
+	dfp$plotOrder<-1:nrow(dfp)
+	dfp[,xvar]<-factor(dfp[,xvar])
+	dfp[,xvar]<-reorder(dfp[,xvar],dfp$plotOrder,decreasing=T)
+	
 	
 	if(dataOnly){
 		parplot<-dfp
 	}else{
-		ylabel<-ifelse(yvar=="totalAbundanceIndex","% Total Abundance Index",
-				ifelse(yvar=="avgEncounterRate","Density Index","% Total Area"))
+		if(xvar=="species" && !is.na(geopolVal) && NROW(geopolVal)==1){
+			ylabel<-ifelse(yvar=="totalAbundanceIndex","% Domain-relative Abundance Index",
+					ifelse(yvar=="avgEncounterRate","% Domain-relative Density Index","% Domain-relative Total Area"))
+		}else{
+			ylabel<-ifelse(yvar=="totalAbundanceIndex","% Total Abundance Index",
+					ifelse(yvar=="avgEncounterRate","Density Index","% Total Area"))
+		}
+		
 		
 		if(barsOnly){	#no pareto, only bar plot
 			if(!is.na(highCat)){	#highlighting one category
 				dfp$barColor<-ifelse(dfp[,xvar]==highCat,highColor,fillColor)
 				dfp<-dfp[order(dfp[,yvar],decreasing=T),]
-				parplot<-ggplot(dfp, aes(x=dfp[,xvar], y=dfp[,yvar])) + geom_bar(fill = dfp$barColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() 
+				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + geom_bar(fill = dfp$barColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() 
 			}else{	#no highlights
-				parplot<-ggplot(dfp, aes(x=dfp[,xvar], y=dfp[,yvar])) + geom_bar(fill = fillColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw()
+				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + geom_bar(fill = fillColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw()
 			}
 			
 		}else{ # Pareto plot...
 			if(!is.na(highCat)){	#highlighting one category
 				dfp$barColor<-ifelse(dfp[,xvar]==highCat,highColor,fillColor)
 				dfp<-dfp[order(dfp[,yvar],decreasing=T),]
-				parplot<-ggplot(dfp, aes(x=dfp[,xvar], y=dfp[,yvar])) + 
+				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + 
 						stat_pareto(point.color = paretoColor,point.size = 2, line.color = paretoColor, bars.fill = dfp$barColor) + 
 						labs(x=xlabel,y=ylabel) + theme_bw() 
 			}else{	#no highlights
-				parplot<-ggplot(dfp, aes(x=dfp[,xvar], y=dfp[,yvar])) + 
+				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + 
 						stat_pareto(point.color = paretoColor, point.size = 2, line.color = paretoColor, bars.fill = fillColor) + 
 						labs(x=xlabel,y=ylabel) + theme_bw()
 			}
