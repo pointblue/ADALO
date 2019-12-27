@@ -590,17 +590,28 @@ fortifyFilterRes<-function(rdf,areaCat,addCat=NA,filterByCat=NA,recalcRelAbund=T
 # 	highCat the category value for bar to highlight, or NA. For example: “Fed – FWS”. Must be one of the values in the column Area (i.e., one of the values in the x-axis).
 # 	highColor the color to use for highlighting (default is a colorblind-friendly value from colorBrewer that complements fillColor), or NA
 # 	paretoCol to change the color of the pareto line and points, defaults to black
-makePareto<-function(df, includesGeopol=NA, xvar="Area", yvar="relAbundance",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Category Levels",
+makePareto<-function(df, includesGeopol=NA, xvar="Area", yvar="totalAbundanceIndex",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Category Levels",
 		transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE,addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black"){
 	
 	if(!is.na(includesGeopol)){
 		df<-subset(df,Area != includesGeopol)
 	}
-	dfp <- df %>% 
-			group_by(Area,metric) %>% 
-			dplyr::summarise(totalCells=sum(sumCells),AreaSizeHA=sum(presenceHA),avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtAbundance))
-	dfp$relArea <- dfp$totalCells*100/sum(dfp$totalCells)
-	dfp$relArea <- round(dfp$relArea, digits=1)
+	
+	if(xvar=="Area"){
+		dfp <- df %>% 
+				group_by(Area,metric) %>% 
+				dplyr::summarise(totalCells=sum(sumCells),AreaSizeHA=sum(presenceHA),avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtAbundance))
+		dfp$relArea <- dfp$totalCells*100/sum(dfp$totalCells)
+		dfp$relArea <- round(dfp$relArea, digits=1)
+		
+	}else{ 	#species
+		dfp <- df %>% 
+				group_by(species,metric) %>% 
+				dplyr::summarise(totalCells=sumCells,AreaSizeHA=AreaSizeHA,avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=round(relAbundance))
+		dfp$relArea <- 100
+		
+	}
+		
 	
 	dfp<-as.data.frame(dfp)
 	dfp[,xvar]<-reorder(dfp[,xvar],abs(dfp[,yvar]-max(dfp[,yvar])))
