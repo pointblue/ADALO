@@ -624,10 +624,10 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 			
 			#there is a confining geopol and this is interpreted as a comparison of relative abundances/densities/areas vs the domain
 			dfp <- df %>% 
-					group_by(species,metric) %>% 
+					group_by(species,Area,metric) %>% 
 					dplyr::summarise(totalCells=round(sumCells*100/domainSumCells),AreaSizeHA=round(AreaSizeHA*100/domainAreaSizeHA),
 							avgEncounterRate=round(wgtDensity*100/domainWgtDensity),totalAbundanceIndex=round(relAbundance*100/domainRelAbundance),
-							relArea<-round(presenceHA*100/domainPresenceHA))
+							relArea=round(presenceHA*100/domainPresenceHA))
 		}
 	}else{print("Warning: improper call to makePareto function? Wrong x-axis variable? More than one geopolical domain value in the data?")}
 	
