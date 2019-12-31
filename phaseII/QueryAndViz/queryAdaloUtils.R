@@ -626,7 +626,7 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 			dfp <- df %>% 
 					group_by(species,Area,metric) %>% 
 					dplyr::summarise(totalCells=round(sumCells*100/domainSumCells),AreaSizeHA=round(AreaSizeHA*100/domainAreaSizeHA),
-							avgEncounterRate=round(wgtDensity*100/domainWgtDensity),totalAbundanceIndex=round(relAbundance*100/domainRelAbundance),
+							avgEncounterRate=round(wgtDensity*100/domainWgtDensity),totalAbundanceIndex=round(wgtAbundance*100/domainWgtAbundance),
 							relArea=round(presenceHA*100/domainPresenceHA))
 		}
 	}else{print("Warning: improper call to makePareto function? Wrong x-axis variable? More than one geopolical domain value in the data?")}
@@ -644,10 +644,10 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 	}else{
 		if(xvar=="species" && !is.na(geopolVal) && NROW(geopolVal)==1){
 			ylabel<-ifelse(yvar=="totalAbundanceIndex","% Domain-relative Abundance Index",
-					ifelse(yvar=="avgEncounterRate","% Domain-relative Density Index","% Domain-relative Total Area"))
+					ifelse(yvar=="avgEncounterRate","% Domain-relative Encounter Rate","% Domain-relative Total Area"))
 		}else{
 			ylabel<-ifelse(yvar=="totalAbundanceIndex","% Total Abundance Index",
-					ifelse(yvar=="avgEncounterRate","Density Index","% Total Area"))
+					ifelse(yvar=="avgEncounterRate","Average Encounter Rate","% Total Area"))
 		}
 		
 		
