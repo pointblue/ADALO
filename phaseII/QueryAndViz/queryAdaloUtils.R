@@ -603,6 +603,8 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 		dfp <- df %>% 
 				group_by(Area,metric) %>% 
 				dplyr::summarise(totalCells=sum(sumCells),AreaSizeHA=sum(presenceHA),avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtAbundance))
+		dfp$AreaSizeHA<-round(dfp$AreaSizeHA/sum(dfp$AreaSizeHA),3)
+		dfp$totalAbundanceIndex<-round(dfp$totalAbundanceIndex/sum(dfp$totalAbundanceIndex),3)
 		dfp$relArea <- dfp$totalCells*100/sum(dfp$totalCells)
 		dfp$relArea <- round(dfp$relArea, digits=1)
 		
@@ -678,13 +680,17 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 		## Beautifying...
 		if(transposePlot){
 			parplot<-parplot + coord_flip() 
+			if(addYVals){
+				parplot<-parplot  + geom_text(aes(label = dfp[,yvar], y = dfp[,yvar] + max(dfp[,yvar])*0.05),position = position_dodge(0.9),vjust = 0,hjust=0,size=2.8)
+			}
 		}else{
 			parplot<-parplot + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+			if(addYVals){
+				parplot<-parplot  + geom_text(aes(label = dfp[,yvar], y = dfp[,yvar] + max(dfp[,yvar])*0.05),position = position_dodge(0.9),vjust = 0,size=2.8)
+			}
 		}
 		
-		if(addYVals){
-			parplot<-parplot  + geom_text(aes(label = dfp[,yvar], y = dfp[,yvar] + max(dfp[,yvar])*0.05),position = position_dodge(0.9),vjust = 0,size=2.8)
-		}
+		
 		
 		if(!is.na(addNote)){
 			parplot<-parplot + annotate("text", x = nrow(dfp)-1, y = max(dfp[,yvar])*0.8, label = addNote,size=5, hjust=1)
