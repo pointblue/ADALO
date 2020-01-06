@@ -638,8 +638,11 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 	dfp<-dfp[order(dfp[,yvar],decreasing=T),]
 	dfp$plotOrder<-1:nrow(dfp)
 	dfp[,xvar]<-factor(dfp[,xvar])
-	dfp[,xvar]<-reorder(dfp[,xvar],dfp$plotOrder,decreasing=T)
-	
+	if(transposePlot){
+		dfp[,xvar]<-reorder(dfp[,xvar],dfp$plotOrder,decreasing=F)
+	}else{
+		dfp[,xvar]<-reorder(dfp[,xvar],dfp$plotOrder,decreasing=T)
+	}
 	
 	if(dataOnly){
 		parplot<-dfp
