@@ -569,7 +569,7 @@ fortifyFilterRes<-function(rdf,areaCat,addCat=NA,filterByCat=NA,recalcRelAbund=T
 		names(fdf)<-gsub("newPCat",addCat,names(fdf))
 		return(fdf)
 	}else{
-		return(rdf)
+		return(rdf)+
 	}
 }
 
@@ -636,18 +636,19 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 		
 	dfp<-as.data.frame(dfp)
 	dfp<-dfp[order(dfp[,yvar],decreasing=T),]
-	dfp$plotOrder<-1:nrow(dfp)
-	dfp[,xvar]<-factor(dfp[,xvar])
+	xv<-xvar
 	if(transposePlot){
-		dfp[,xvar]<-reorder(dfp[,xvar],dfp$plotOrder,decreasing=F)
+		dfp<-orderDFtoPlot(df=dfp,xv=xvar,forFlip=TRUE)
 	}else{
-		dfp[,xvar]<-reorder(dfp[,xvar],dfp$plotOrder,decreasing=T)
+		dfp<-orderDFtoPlot(df=dfp,xv=xvar,forFlip=FALSE)
 	}
+	
+	
 	
 	if(dataOnly){
 		parplot<-dfp
 	}else{
-		if(xvar=="species" && !is.na(geopolVal) && NROW(geopolVal)==1){
+		if(!is.na(geopolVal) && NROW(geopolVal)==1){	#conditional to having one geopolVal - must report "% of totals"
 			ylabel<-ifelse(yvar=="totalAbundanceIndex","% Domain-relative Abundance Index",
 					ifelse(yvar=="avgEncounterRate","% Domain-relative Encounter Rate","% Domain-relative Total Area"))
 		}else{
@@ -657,29 +658,45 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 		
 		
 		if(barsOnly){	#no pareto, only bar plot
+			maxy<-max(dfp[,yvar])
+			paddedlim<-maxy*1.2
 			if(!is.na(highCat)){	#highlighting one category
 				dfp$barColor<-ifelse(dfp[,xvar]==highCat,highColor,fillColor)
-				dfp<-dfp[order(dfp[,yvar],decreasing=T),]
-				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + geom_bar(fill = dfp$barColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() 
+				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + geom_bar(fill = dfp$barColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() +
+						scale_y_continuous(limits=c(0,paddedlim))
 			}else{	#no highlights
-				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + geom_bar(fill = fillColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw()
+				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + geom_bar(fill = fillColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() +
+						scale_y_continuous(limits=c(0,paddedlim))
 			}
 			
+			
 		}else{ # Pareto plot...
+			#Create the cumulative, but ensure first order is by yvar...
+			dfp<-dfp[order(dfp[,yvar],decreasing=T),]
+			dfp$cumMetric<-cumsum(dfp[,yvar])/sum(dfp[,yvar])
+			#need to reorder again to break ties in cumsum
+			dfp<-dfp[order(dfp$cumMetric,decreasing=F),]
+			if(transposePlot){
+				dfp$plotOrder<-nrow(dfp):1
+			}else{
+				dfp$plotOrder<-1:nrow(dfp)
+			}
+			dfp<-dfp[order(dfp$plotOrder),]
+			dfp[,xvar]<-reorder(dfp[,xvar],dfp$plotOrder)
+			
 			if(!is.na(highCat)){	#highlighting one category
 				dfp$barColor<-ifelse(dfp[,xvar]==highCat,highColor,fillColor)
-				dfp<-dfp[order(dfp[,yvar],decreasing=T),]
-				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + 
-						stat_pareto(point.color = paretoColor,point.size = 2, line.color = paretoColor, bars.fill = dfp$barColor) + 
-						labs(x=xlabel,y=ylabel) + theme_bw() 
+				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + geom_bar(fill = dfp$barColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() + 
+						scale_y_continuous(limits=c(0,1),sec.axis = sec_axis(~ . * 100, name="Cumulative Percentage")) +
+						geom_point(aes_string(x=xvar,y="cumMetric"),color=paretoColor) + geom_line(aes_string(x=xvar,y="cumMetric", group=1),color=paretoColor)
+				
 			}else{	#no highlights
-				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + 
-						stat_pareto(point.color = paretoColor, point.size = 2, line.color = paretoColor, bars.fill = fillColor) + 
-						labs(x=xlabel,y=ylabel) + theme_bw()
+				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + geom_bar(fill = fillColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() + 
+						scale_y_continuous(limits=c(0,1),sec.axis = sec_axis(~ . * 100, name="Cumulative Percentage")) +
+						geom_point(aes_string(x=xvar,y="cumMetric"),color=paretoColor) + geom_line(aes_string(x=xvar,y="cumMetric", group=1),color=paretoColor)
 			}
 			
 		}
-		
 		## Beautifying...
 		if(transposePlot){
 			parplot<-parplot + coord_flip() 
@@ -695,13 +712,33 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 		
 		
 		
-		if(!is.na(addNote)){
+		
+		
+		if(!is.na(addNote)){ #Add space on the yaxis for the labels if not Pareto
 			parplot<-parplot + annotate("text", x = nrow(dfp)-1, y = max(dfp[,yvar])*0.8, label = addNote,size=5, hjust=1)
 		}
 	}
 		
 	return(parplot)
 				
+}
+
+## This functon re-orders the data.frame and the factor x-axis for transposing the plot
+## such that the largest category is at the top of the plot
+# df is the data.frame to reorder
+## xv is a string naming the x-axis factor variable
+## forFlip is a boolean - default FALSE, so the plot is not flipped and the first bar (left-most) is the highest category
+##		if TRUE, then sorted so that the top category is the highest
+orderDFtoPlot<-function(df,xv,forFlip=FALSE){
+	if(forFlip){
+		df$plotOrder<-nrow(df):1
+	}else{
+		df$plotOrder<-1:nrow(df)
+	}
+	df<-df[order(df$plotOrder),]
+	df[,xv]<-factor(df[,xv])
+	df[,xv]<-reorder(df[,xv],df$plotOrder)
+	return(df)
 }
 
 
