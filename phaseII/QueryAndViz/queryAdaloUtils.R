@@ -569,7 +569,7 @@ fortifyFilterRes<-function(rdf,areaCat,addCat=NA,filterByCat=NA,recalcRelAbund=T
 		names(fdf)<-gsub("newPCat",addCat,names(fdf))
 		return(fdf)
 	}else{
-		return(rdf)+
+		return(rdf)
 	}
 }
 
