@@ -591,6 +591,7 @@ fortifyFilterRes<-function(rdf,areaCat,addCat=NA,filterByCat=NA,recalcRelAbund=T
 # 	highCat the category value for bar to highlight, or NA. For example: “Fed – FWS”. Must be one of the values in the column Area (i.e., one of the values in the x-axis).
 # 	highColor the color to use for highlighting (default is a colorblind-friendly value from colorBrewer that complements fillColor), or NA
 # 	paretoCol to change the color of the pareto line and points, defaults to black
+#   addStrip permits passing a string to be used as strip text: a sort of plot title?
 makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Category Levels",
 		transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE,addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black", addStrip=NA){
 	
