@@ -1,6 +1,6 @@
 # ***AVIAN DISTRIBUTIONS ACROSS LAND OWNERSHIPS (ADALO)***
 
-# Date: December 12, 2019
+# Date: January 13, 2020
 
 # Authors: 
 # Leo Salas, Point Blue Conservation Science, lsalas@pointblue.org
@@ -111,39 +111,116 @@ source("/home/adalouser/ADALO/phaseII/QueryAndViz/queryAdaloUtils.R")
 ## Here we describe four types of queries that a user can make using the ADALO tool.
 
 
-# (1) Contribution of a Single Refuge/Refuge Complex ----
+# QUESTION 1: Contribution of a Single Refuge/Refuge Complex ----
 #Example: I need to identify priority Resources of Concern (ROCs) for my refuge or refuge complex. One factor that I will consider is the contribution of my refuge/complex to the total abundance index of selected bird species during one or more seasons (breeding, wintering). How do bird species rank in terms of the contribution of my refuge/complex to the total abundance index?
 
-# Example 1: Charles M. Russell National Wildlife Refuge
-res<-makeQuestion(byComp="species",metric=5,period=1,species=c("bais","bobo","buow","canv","cclo","lbcu","mago","mopl","nopi","sacr","sppi"),padusCat="unitName",catValues=c('Charles M. Russell National Wildlife Refuge'))
+# Example 1a: Charles M. Russell National Wildlife Refuge - Metric 4
+res<-makeQuestion(byComp="species",metric=4,period=1,species=c("bais","bobo","buow","canv","cclo","lbcu","mago","mopl","nopi","sacr","sppi"),padusCat="unitName",catValues=c('Charles M. Russell National Wildlife Refuge'))
 
-makeContrast(res,reportAreaSurv=FALSE,by="species",outp="abund",outt="table")
+p<-makePareto(df=res, geopolVal=NA, xvar="species", yvar="avgEncounterRate", barsOnly=TRUE, dataOnly=FALSE, xlabel="Species", transposePlot=TRUE, fillColor="#0571b0", addYVals=TRUE, addNote=NA, highCat=NA, highColor="#ca0020",paretoColor="black"); print(p)
 
-p<-makeContrast(res,reportAreaSurv=FALSE,by="species",outp="abund",outt="plot"); print(p)
 
-#Compare to total abundance for the geoplitical domain (e.g., USFWS region)
+# Example 1b: Charles M. Russell National Wildlife Refuge - Metric 5 (prop of total abundance in R6)
+res<-makeQuestion(byComp="species",metric=5,period=1, species=c("bais","bobo","buow","canv","cclo","lbcu","mago","mopl","nopi","sacr","sppi"), padusCat="unitName",catValues=c('Charles M. Russell National Wildlife Refuge'),geopolCat="USFWSregion",geopolValues=6)
+
+#% Domain-relative abundance index
+p<-makePareto(df=res, geopolVal="USFWSregion 6", xvar="species", yvar="totalAbundanceIndex",barsOnly=TRUE, dataOnly=FALSE, xlabel="Species",transposePlot=TRUE,fillColor="#0571b0",addYVals=TRUE, addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black"); print(p)
+
+
+#Old method - No comparison to Region
+res<-makeQuestion(byComp="species",metric=5,period=1,species=c("bais","bobo","buow","canv","cclo","lbcu","mago","mopl","nopi","sacr","sppi"),padusCat="unitName",catValues=c('Charles M. Russell National Wildlife Refuge'),geopolCat=NA,geopolValues=NA)
+
+tab1 <- makeContrast(res,reportAreaSurv=FALSE,by="species",outp="abund",outt="table")
+tab1
+
+p<-makeContrast(res,reportAreaSurv=FALSE,by="species",outp="dens",outt="plot"); print(p)
+
+#Old Method - Compare to total abundance for the geoplitical domain (e.g., USFWS region)
 res<-makeQuestion(byComp="species",metric=5,period=1,species=c("bais","bobo","buow","canv","cclo","lbcu","mago","mopl","nopi","sacr","sppi"),padusCat="unitName",catValues=c('Charles M. Russell National Wildlife Refuge'),geopolCat="USFWSregion",geopolValues=6,geopolRestrict=T)
 
 makeContrast(res,reportAreaSurv=FALSE,by="species",outp="abund",outt="table")
 
 p<-makeContrast(res,reportAreaSurv=FALSE,byComp="species",outp="abund",outt="plot"); print(p)
 
-# Example 2: Sacramento National Wildlife Refuge
+
+# Example 2a: Sacramento National Wildlife Refuge - Metric 4
+
+res<-makeQuestion(byComp="species",metric=4,period=0,species=c("canv","lbcu","mago","mopl","sacr","trbl"),padusCat="unitName",catValues=c('Sacramento National Wildlife Refuge'))
+
+p<-makePareto(df=res, geopolVal=NA, xvar="species", yvar="avgEncounterRate", barsOnly=TRUE, dataOnly=FALSE, xlabel="Species", transposePlot=TRUE, fillColor="#0571b0", addYVals=TRUE, addNote=NA, highCat=NA, highColor="#ca0020",paretoColor="black"); print(p)
+
+
+#Old method - Metric 4
+res<-makeQuestion(byComp="species",metric=4,period=0,species=c("canv","lbcu","mago","mopl","sacr","trbl"),padusCat="unitName",catValues=c('Sacramento National Wildlife Refuge'))
+
+tab1 <- makeContrast(res,reportAreaSurv=FALSE,by="species",outp="abund",outt="table")
+tab1
+
+p<-makeContrast(res,reportAreaSurv=FALSE,by="species",outp="dens",outt="plot"); print(p)
+
+
+# Example 2b: Sacramento National Wildlife Refuge - Metric 5 (prop of total abundance in R8)
+res<-makeQuestion(byComp="species",metric=5,period=0, species=c("canv","lbcu","mago","mopl","nopi","sacr","trbl"), padusCat="unitName",catValues=c('Sacramento National Wildlife Refuge'),geopolCat="USFWSregion",geopolValues=8)
+
+#% Domain-relative abundance index
+p<-makePareto(df=res, geopolVal="USFWSregion 8", xvar="species", yvar="totalAbundanceIndex",barsOnly=TRUE, dataOnly=FALSE, xlabel="Species",transposePlot=TRUE,fillColor="#0571b0",addYVals=TRUE, addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black"); print(p)
+
+
+#Old Method - No comparison to Region
 res<-makeQuestion(byComp="species",metric=5,period=0,species=c("canv","lbcu","mago","mopl","nopi","sacr","trbl"),padusCat="unitName",catValues=c('Sacramento National Wildlife Refuge'),geopolCat=NA,geopolValues=NA)
 
 makeContrast(res,reportAreaSurv=FALSE,by="species",outp="abund",outt="table")
 
 p<-makeContrast(res,reportAreaSurv=FALSE,by="species",outp="abund",outt="plot"); print(p)
 
+#Old Method - Compare to total abundance for the geoplitical domain (e.g., USFWS region)
+res<-makeQuestion(byComp="species",metric=5,period=0,species=c("canv","lbcu","mago","mopl","nopi","sacr","trbl"),padusCat="unitName",catValues=c('Sacramento National Wildlife Refuge'),geopolCat="USFWSregion",geopolValues=8,geopolRestrict=T)
 
-#(2) Contribution of Multiple Individual Refuges ----
+makeContrast(res,reportAreaSurv=FALSE,by="species",outp="abund",outt="table")
+
+p<-makeContrast(res,reportAreaSurv=FALSE,byComp="species",outp="abund",outt="plot"); print(p)
+
+
+
+#QUESTION 2: Contribution of Multiple Individual Refuges ----
 # Example: I need to identify the specific refuges that can make the largest contributions toward supporting total populations of a selected bird species within a USFWS region. This will help inform the allocation of regional resources to field stations that make the biggest contributions.
 # How do refuges rank in terms of their contribution to total abundance for a selected bird species within USFWS Region X?
 
 #Example 1: Chestnut-collared longspur in Region 6 (breeding)
+#New Method - Pareto Chart
+res<-makeQuestion(byComp="species",metric=5,period=1, species="cclo", padusCat="unitName",catValues="all",geopolCat="USFWSregion",geopolValues=6,geopolRestrict=T)
+
+#Add Designation Type (park, refuge, etc.)
+resfort<- fortifyFilterRes(rdf=res, areaCat="unitName", addCat="desType", filterByCat=NA, recalcRelAbund=FALSE)
+
+#Add Manager Name (FWS, NPS, etc.)
+resfort<- fortifyFilterRes(rdf=resfort, areaCat="unitName", addCat="mgrName", filterByCat=NA, recalcRelAbund=FALSE)
+
+head(resfort)
+
+#Filter records for NWRs and managed by FWS
+resfort <- filter(resfort,desType == "National Wildlife Refuge",mgrName == "FWS")
+
+head(resfort)
+
+#% Domain-relative abundance index
+p<-makePareto(df=head(resfort[order(-resfort$wgtSumMetric),],10), geopolVal="USFWSregion 6", xvar="Area", yvar="totalAbundanceIndex",barsOnly=TRUE, dataOnly=FALSE, xlabel="Area",transposePlot=TRUE,fillColor="#0571b0",addYVals=TRUE, addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black"); print(p)
+
+
+#Old Method
 res<-makeQuestion(byComp="species",metric=5,period=1,species="cclo",padusCat="unitName",catValues="all",geopolCat="USFWSregion",geopolValues=6,geopolRestrict=T)
 
-resfort<- fortifyFilterRes(rdf=res, areaCat="unitName", addCat="mgrName", filterByCat=c("FWS"), recalcRelAbund=TRUE) #Filter records for one land manager/owner
+resfort<- fortifyFilterRes(rdf=res, areaCat="unitName", addCat=c("mgrName","desType"), filterByCat=NA, recalcRelAbund=FALSE)
+
+rfa<-subset(resfort,mgrName=="FWS",desType=="National Wildlife Refuge");rfa$Area<-as.character(rfa$Area)
+
+rfa<-rfa[order(rfa$wgtSumMetric,decreasing=TRUE),]
+
+rfb<-subset(resfort,Area=="USFWSregion 6")
+
+resft<-rbind(rfa[1:10,],rfb)
+
+p<-makePareto(df=resft, geopolVal="USFWSregion 6", xvar="Area",yvar="totalAbundanceIndex",barsOnly=FALSE, dataOnly=FALSE,xlabel="Area",transposePlot=TRUE,fillColor="#0571b0",addYVals=TRUE, addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black"); print(p)
 
 makeContrast(resfort,reportAreaSurv=FALSE,by="area",outp="abund",outt="table")
 
@@ -151,6 +228,28 @@ p<-makeContrast(head(resfort[order(-resfort$wgtSumMetric),],10),reportAreaSurv=F
 
 
 #Example 2: Tricolored blackbird in Region 8 (breeding)
+
+#New Method - Pareto Chart
+res<-makeQuestion(byComp="species",metric=5,period=1, species="trbl", padusCat="unitName",catValues="all",geopolCat="USFWSregion",geopolValues=8,geopolRestrict=T)
+
+#Add Manager Name (FWS, NPS, etc.)
+resfort<- fortifyFilterRes(rdf=res, areaCat="unitName", addCat="mgrName", filterByCat=NA, recalcRelAbund=FALSE)
+
+#Add Designation Type (park, refuge, etc.)
+#resfort<- fortifyFilterRes(rdf=resfort, areaCat="unitName", addCat="desType", filterByCat=NA, recalcRelAbund=FALSE)
+
+head(resfort)
+
+#Filter records for NWRs and managed by FWS
+resfort <- filter(resfort,mgrName == "FWS")
+
+head(resfort)
+
+#% Domain-relative abundance index
+p<-makePareto(df=head(resfort[order(-resfort$wgtSumMetric),],10), geopolVal="USFWSregion 6", xvar="Area", yvar="totalAbundanceIndex",barsOnly=FALSE, dataOnly=FALSE, xlabel="Area",transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE, addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black"); print(p)
+
+
+#Old Method
 res<-makeQuestion(byComp="species",metric=5,period=1,species="trbl",padusCat="unitName",catValues="all",geopolCat="USFWSregion",geopolValues=8,geopolRestrict=T)
 
 resfort<- fortifyFilterRes(rdf=res, areaCat="unitName", addCat="mgrName", filterByCat=c("FWS"), recalcRelAbund=TRUE) #Filter records for one land manager/owner
@@ -159,11 +258,18 @@ makeContrast(resfort,reportAreaSurv=FALSE,by="area",outp="abund",outt="table")
 
 p<-makeContrast(head(resfort[order(-resfort$wgtSumMetric),],10),reportAreaSurv=FALSE,by="area",outp="abund",outt="plot",plotSorted=TRUE); print(p)
 
-#(3) Contribution of USFWS-managed Lands as a Whole ----
+#QUESTION 3: Contribution of USFWS-managed Lands as a Whole ----
 #Example: I need to identify Regional Priorities to drive regional conservation and monitoring efforts. One factor that I will consider is the contribution of USFWS-managed lands to total populations of selected bird species during one or more seasons (breeding, wintering) within a USFWS Region.
 #How do bird species rank in terms of the contribution of refuge lands as a whole to total abundance for selected species within USFWS Region X?
 
 # Example 1: Region 6 breeding season
+res<-makeQuestion(byComp="species",metric=5,period=1,species=c("bais","bobo","buow","canv","cclo","lbcu","mago","mopl","nopi","sacr","sppi"),padusCat="mgrName",catValues='FWS',geopolCat="USFWSregion",geopolValues=6,geopolRestrict=T)
+
+#% Domain-relative abundance index
+p<-makePareto(df=res, geopolVal="USFWSregion 6", xvar="species", yvar="totalAbundanceIndex",barsOnly=FALSE, dataOnly=FALSE, xlabel="Species",transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE, addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black"); print(p)
+
+
+#Old Method
 res<-makeQuestion(byComp="species",metric=5,period=1,species=c("bais","bobo","buow","canv","cclo","lbcu","mago","mopl","nopi","sacr","sppi"),padusCat="mgrName",catValues='FWS',geopolCat="USFWSregion",geopolValues=6,geopolRestrict=T)
 
 res<-subset(res, Area=="FWS")
@@ -183,7 +289,7 @@ makeContrast(res,reportAreaSurv=FALSE,by="species",outp="abund",outt="table")
 p<-makeContrast(res,reportAreaSurv=FALSE,by="species",outp="abund",outt="plot"); print(p)
 
 
-#(4) Contribution of Multiple Land Managers ----
+#QUESTION 4: Contribution of Multiple Land Managers ----
 #Example: I need to identify the best partners to work with or influence who contribute the most toward supporting total populations of a selected bird species within a USFWS region. This will help inform outreach and partnership efforts for collaborative conservation.
 #How do landowners/managers rank in terms of the contribution of their lands to total abundance for a selected bird species within USFWS Region X?
 
@@ -200,32 +306,9 @@ res
 res$Area <- getManagerName(res$Area)
 res
 
-#Summarize data by Area and Metric
-res <- res %>% 
-  group_by(Area,metric) %>% 
-  dplyr::summarise(totalCells=sum(sumCells),AreaSizeHA=sum(presenceHA),avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtAbundance))
-res
-
-#Pareto Chart
-res$relArea <- res$totalCells/res$totalCells[length(res$totalCells)]*100
-res$relArea <- round(res$relArea, digits=1)
-df <- data.frame(
-  x = res$Area[-length(res$Area)],
-  y = res$relArea[-length(res$Area)])
-#Set up plot colors
-df$color_scale <- NA
-for (i in 1:length(df$x)){
-  if (df$x[i] == "Fed - FWS") {
-    df$color_scale[i] <- "#D55E00"
-  } else {
-    df$color_scale[i] <- "#009E73"
-  }
-}
-
-
-# Render Pareto Plot
-p1 <- ggplot(df, aes(x=x, y=y)) + stat_pareto(point.color = "black",point.size = 2, line.color = "black", bars.fill = df$color_scale[order(-df$y)]) + geom_text(aes(label = y[order(-y)] , y = y[order(-y)] + max(res$relArea)*0.05),position = position_dodge(0.9),vjust = 0,size=2.8) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + xlab("PAD-US Land Manager") + ylab("% of Total Area") + annotate("text", x = 6, y = 70, label = "All Lands",size=5)
-p1
+#Plot a Pareto chart
+p2<-makePareto(df=res,includesGeopol="USFWSregion 6", yvar="relArea",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Land Manager",transposePlot=FALSE, fillColor="#0571b0",addYVals=TRUE,addNote=NA,highCat="Fed - FWS",highColor="#ca0020",paretoColor="black")
+p2
 
 
 #Land Ownership by Area - Protected Lands ----
@@ -233,17 +316,17 @@ p1
 
 #Pareto Chart
 df <- data.frame(
-  x = res$Area[1:(length(res$Area)-2)],
-  y = res$totalCells[1:(length(res$Area)-2)]/sum(res$totalCells[1:(length(res$Area)-2)])*100)
+		x = res$Area[1:(length(res$Area)-2)],
+		y = res$totalCells[1:(length(res$Area)-2)]/sum(res$totalCells[1:(length(res$Area)-2)])*100)
 df$y <- round(df$y, digits=1)
 #Set up plot colors
 df$color_scale <- NA
 for (i in 1:length(df$x)){
-  if (df$x[i] == "Fed - FWS") {
-    df$color_scale[i] <- "#D55E00"
-  } else {
-    df$color_scale[i] <- "#009E73"
-  }
+	if (df$x[i] == "Fed - FWS") {
+		df$color_scale[i] <- "#D55E00"
+	} else {
+		df$color_scale[i] <- "#009E73"
+	}
 }
 
 
@@ -264,25 +347,25 @@ res
 
 #Summarize data by Area and Metric
 res <- res %>% 
-  group_by(Area,metric) %>% 
-  dplyr::summarise(avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtSumMetric))
+		group_by(Area,metric) %>% 
+		dplyr::summarise(avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtSumMetric))
 res
 
 #Bar Chart
 # Set up data
 res$avgEncounterRate <- round(res$avgEncounterRate, digits=3)
 df <- data.frame(
-  x = res$Area[-length(res$Area)],
-  y = res$avgEncounterRate[-length(res$Area)])
+		x = res$Area[-length(res$Area)],
+		y = res$avgEncounterRate[-length(res$Area)])
 
 #Set up plot colors
 df$color_scale <- NA
 for (i in 1:length(df$x)){
-  if (df$x[i] == "Fed - FWS") {
-    df$color_scale[i] <- "#D55E00"
-  } else {
-    df$color_scale[i] <- "#0072B2"
-  }
+	if (df$x[i] == "Fed - FWS") {
+		df$color_scale[i] <- "#D55E00"
+	} else {
+		df$color_scale[i] <- "#0072B2"
+	}
 }
 
 #Sort data frame by descending avgEncounterRate to get the correct colors for the barplot
@@ -302,24 +385,24 @@ res$Area <- getManagerName(res$Area)
 
 #Summarize data by Area and Metric
 res <- res %>% 
-  group_by(Area,metric) %>% 
-  dplyr::summarise(totalCells=sum(sumCells),AreaSizeHA=sum(presenceHA),avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtAbundance))
+		group_by(Area,metric) %>% 
+		dplyr::summarise(totalCells=sum(sumCells),AreaSizeHA=sum(presenceHA),avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtAbundance))
 res
 
 res$totalAbundanceIndex <- round(res$totalAbundanceIndex, digits=0)
 df <- data.frame(
-  x = res$Area[-length(res$Area)],
-  y = res$totalAbundanceIndex[-length(res$Area)],
-  z = res$totalAbundanceIndex[-length(res$Area)]/res$totalAbundanceIndex[length(res$Area)])
+		x = res$Area[-length(res$Area)],
+		y = res$totalAbundanceIndex[-length(res$Area)],
+		z = res$totalAbundanceIndex[-length(res$Area)]/res$totalAbundanceIndex[length(res$Area)])
 df$z <- round(df$z, digits=3)*100
 #Set up plot colors
 df$color_scale <- NA
 for (i in 1:length(df$x)){
-  if (df$x[i] == "Fed - FWS") {
-    df$color_scale[i] <- "#D55E00"
-  } else {
-    df$color_scale[i] <- "#56B4E9"
-  }
+	if (df$x[i] == "Fed - FWS") {
+		df$color_scale[i] <- "#D55E00"
+	} else {
+		df$color_scale[i] <- "#56B4E9"
+	}
 }
 
 # Render Pareto Plot
@@ -342,24 +425,24 @@ res
 
 #Summarize data by Area and Metric
 res <- res %>% 
-  group_by(Area,metric) %>% 
-  dplyr::summarise(totalCells=sum(sumCells),AreaSizeHA=sum(presenceHA),avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtAbundance))
+		group_by(Area,metric) %>% 
+		dplyr::summarise(totalCells=sum(sumCells),AreaSizeHA=sum(presenceHA),avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtAbundance))
 res
 
 #Pareto Chart
 res$relArea <- res$totalCells/res$totalCells[length(res$totalCells)]*100
 res$relArea <- round(res$relArea, digits=1)
 df <- data.frame(
-  x = res$Area[-length(res$Area)],
-  y = res$relArea[-length(res$Area)])
+		x = res$Area[-length(res$Area)],
+		y = res$relArea[-length(res$Area)])
 #Set up plot colors
 df$color_scale <- NA
 for (i in 1:length(df$x)){
-  if (df$x[i] == "Fed - FWS") {
-    df$color_scale[i] <- "#D55E00"
-  } else {
-    df$color_scale[i] <- "#009E73"
-  }
+	if (df$x[i] == "Fed - FWS") {
+		df$color_scale[i] <- "#D55E00"
+	} else {
+		df$color_scale[i] <- "#009E73"
+	}
 }
 
 
@@ -373,17 +456,17 @@ p1
 
 #Pareto Chart
 df <- data.frame(
-  x = res$Area[1:(length(res$Area)-2)],
-  y = res$totalCells[1:(length(res$Area)-2)]/sum(res$totalCells[1:(length(res$Area)-2)])*100)
+		x = res$Area[1:(length(res$Area)-2)],
+		y = res$totalCells[1:(length(res$Area)-2)]/sum(res$totalCells[1:(length(res$Area)-2)])*100)
 df$y <- round(df$y, digits=1)
 #Set up plot colors
 df$color_scale <- NA
 for (i in 1:length(df$x)){
-  if (df$x[i] == "Fed - FWS") {
-    df$color_scale[i] <- "#D55E00"
-  } else {
-    df$color_scale[i] <- "#009E73"
-  }
+	if (df$x[i] == "Fed - FWS") {
+		df$color_scale[i] <- "#D55E00"
+	} else {
+		df$color_scale[i] <- "#009E73"
+	}
 }
 
 
@@ -404,25 +487,25 @@ res
 
 #Summarize data by Area and Metric
 res <- res %>% 
-  group_by(Area,metric) %>% 
-  dplyr::summarise(avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtSumMetric))
+		group_by(Area,metric) %>% 
+		dplyr::summarise(avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtSumMetric))
 res
 
 #Bar Chart
 # Set up data
 res$avgEncounterRate <- round(res$avgEncounterRate, digits=3)
 df <- data.frame(
-  x = res$Area[-length(res$Area)],
-  y = res$avgEncounterRate[-length(res$Area)])
+		x = res$Area[-length(res$Area)],
+		y = res$avgEncounterRate[-length(res$Area)])
 
 #Set up plot colors
 df$color_scale <- NA
 for (i in 1:length(df$x)){
-  if (df$x[i] == "Fed - FWS") {
-    df$color_scale[i] <- "#D55E00"
-  } else {
-    df$color_scale[i] <- "#0072B2"
-  }
+	if (df$x[i] == "Fed - FWS") {
+		df$color_scale[i] <- "#D55E00"
+	} else {
+		df$color_scale[i] <- "#0072B2"
+	}
 }
 
 #Sort data frame by descending avgEncounterRate to get the correct colors for the barplot
@@ -442,24 +525,24 @@ res$Area <- getManagerName(res$Area)
 
 #Summarize data by Area and Metric
 res <- res %>% 
-  group_by(Area,metric) %>% 
-  dplyr::summarise(totalCells=sum(sumCells),AreaSizeHA=sum(presenceHA),avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtAbundance))
+		group_by(Area,metric) %>% 
+		dplyr::summarise(totalCells=sum(sumCells),AreaSizeHA=sum(presenceHA),avgEncounterRate=weighted.mean(wgtDensity,sumCells),totalAbundanceIndex=sum(wgtAbundance))
 res
 
 res$totalAbundanceIndex <- round(res$totalAbundanceIndex, digits=0)
 df <- data.frame(
-  x = res$Area[-length(res$Area)],
-  y = res$totalAbundanceIndex[-length(res$Area)],
-  z = res$totalAbundanceIndex[-length(res$Area)]/res$totalAbundanceIndex[length(res$Area)])
+		x = res$Area[-length(res$Area)],
+		y = res$totalAbundanceIndex[-length(res$Area)],
+		z = res$totalAbundanceIndex[-length(res$Area)]/res$totalAbundanceIndex[length(res$Area)])
 df$z <- round(df$z, digits=3)*100
 #Set up plot colors
 df$color_scale <- NA
 for (i in 1:length(df$x)){
-  if (df$x[i] == "Fed - FWS") {
-    df$color_scale[i] <- "#D55E00"
-  } else {
-    df$color_scale[i] <- "#56B4E9"
-  }
+	if (df$x[i] == "Fed - FWS") {
+		df$color_scale[i] <- "#D55E00"
+	} else {
+		df$color_scale[i] <- "#56B4E9"
+	}
 }
 
 # Render Pareto Plot
@@ -469,7 +552,7 @@ p1_tai
 
 #VARIATIONS ON BASIC QUERIES ----
 
-#(5)	Basic Query + Varying Geopolitical Domains ----
+#QUESTION 5:	Basic Query + Varying Geopolitical Domains ----
 #Example: I need to identify the best partners to work with or influence who contribute the most toward supporting total populations of a selected bird species within the Intermountain West Joint Venture. This will help inform outreach and partnership efforts for collaborative conservation at that geographic scale. Other geopolitical areas of interest could include U.S. States, Bird Conservation Regions (BCRs), Landscape Conservation Cooperatives (LCCs), etc.
 #How do landowners/managers rank in terms of the contribution of their lands to total abundance for a selected bird species within the Intermountain West Joint Venture?
 
@@ -494,7 +577,7 @@ makeContrast(res,reportAreaSurv=FALSE,by="area",outp="abund",outt="table")
 p<-makeContrast(head(res[order(-res$relAbundance),],10),reportAreaSurv=FALSE,by="area",outp="abund",outt="plot",plotSorted=TRUE); print(p)
 
 
-#(6)	Basic Query + Varying Species Distribution Models (SDMs) ----
+#QUESTION 6:	Basic Query + Varying Species Distribution Models (SDMs) ----
 #Example 1: HAPET produced an outside species distribution model for BAIS. I need to identify the specific refuges that can make the largest contributions toward supporting total populations of BAIS within a USFWS region. This will help inform the allocation of regional resources to field stations that make the biggest contributions.
 #How do refuges rank in terms of their contribution to total occupancy for BAIS within USFWS Region 6?
 
@@ -530,7 +613,7 @@ p<-makeContrast(head(resfort[order(-resfort$wgtSumMetric),],10),reportAreaSurv=F
 #Example 2b: Tricolored Blackbird in Region 6 (breeding) ADALO Base Model
 res<-makeQuestion(byComp="species",metric=5,period=1,species="trbl",padusCat="unitName",catValues="all",geopolCat="USFWSregion",geopolValues=8,geopolRestrict=T)
 
-resfort<- fortifyFilterRes(rdf=res, areaCat="unitName", addCat="mgrName", filterByCat=c("FWS"), recalcRelAbund=TRUE) #Filter records for one land manager/owner
+resfort<- fortifyFilterRes(rdf=res, areaCat="unitName", addCat="desType", filterByCat=c("National Wildlife Refuge","Waterfowl Production Area"), recalcRelAbund=TRUE) #Filter records for one land manager/owner
 
 makeContrast(resfort,reportAreaSurv=FALSE,by="area",outp="abund",outt="table")
 
