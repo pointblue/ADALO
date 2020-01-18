@@ -591,9 +591,10 @@ fortifyFilterRes<-function(rdf,areaCat,addCat=NA,filterByCat=NA,recalcRelAbund=T
 # 	highCat the category value for bar to highlight, or NA. For example: “Fed – FWS”. Must be one of the values in the column Area (i.e., one of the values in the x-axis).
 # 	highColor the color to use for highlighting (default is a colorblind-friendly value from colorBrewer that complements fillColor), or NA
 # 	paretoCol to change the color of the pareto line and points, defaults to black
+#   xlabAngle is the slanting angle for x-axis labels, defaulting to 45, and only used if transposePlot=FALSE and xvar="Area" (never slanting if xvar="species")
 #   addStrip permits passing a string to be used as strip text: a sort of plot title?
 makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Category Levels",
-		transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE,addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black", addStrip=NA){
+		transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE,addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black",xlabAngle=45,addStrip=NA){
 	
 	if(xvar=="Area"){
 		if(is.na(geopolVal)){
@@ -708,7 +709,7 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 				parplot<-parplot  + geom_text(aes(label = dfp[,yvar], y = dfp[,"relMetric"] + max(dfp[,"relMetric"])*0.05),position = position_dodge(0.9),vjust = 0,hjust=0,size=2.8)
 			}
 		}else{
-			if(xvar=="Area"){parplot<-parplot + theme(axis.text.x = element_text(angle = 45, hjust = 1))}
+			if(xvar=="Area"){parplot<-parplot + theme(axis.text.x = element_text(angle = xlabAngle, hjust = 1))}
 			if(addYVals){
 				parplot<-parplot  + geom_text(aes(label = dfp[,yvar], y = dfp[,"relMetric"] + max(dfp[,"relMetric"])*0.05),position = position_dodge(0.9),vjust = 0,size=2.8)
 			}
