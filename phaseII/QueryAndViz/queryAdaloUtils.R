@@ -592,7 +592,7 @@ fortifyFilterRes<-function(rdf,areaCat,addCat=NA,filterByCat=NA,recalcRelAbund=T
 # 	highColor the color to use for highlighting (default is a colorblind-friendly value from colorBrewer that complements fillColor), or NA
 # 	paretoCol to change the color of the pareto line and points, defaults to black
 makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Category Levels",
-		transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE,addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black"){
+		transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE,addNote=NA,highCat=NA,highColor="#ca0020",paretoColor="black", addStrip=NA){
 	
 	if(xvar=="Area"){
 		if(is.na(geopolVal)){
@@ -656,9 +656,8 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 					ifelse(yvar=="avgEncounterRate","Average Encounter Rate","% Total Area"))
 		}
 		
-		
+		maxy<-max(dfp[,yvar])
 		if(barsOnly){	#no pareto, only bar plot
-			maxy<-max(dfp[,yvar])
 			paddedlim<-maxy*1.2
 			if(!is.na(highCat)){	#highlighting one category
 				dfp$barColor<-ifelse(dfp[,xvar]==highCat,highColor,fillColor)
@@ -676,6 +675,10 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 			dfp$cumMetric<-cumsum(dfp[,yvar])/sum(dfp[,yvar])
 			#need to reorder again to break ties in cumsum
 			dfp<-dfp[order(dfp$cumMetric,decreasing=F),]
+			dfp$relMetric<-round(dfp[,yvar]/sum(dfp[,yvar]),3)
+			#Need ylim for the y-axis limits
+			ylim<-maxy*1.2
+			
 			if(transposePlot){
 				dfp$plotOrder<-nrow(dfp):1
 			}else{
@@ -686,12 +689,12 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 			
 			if(!is.na(highCat)){	#highlighting one category
 				dfp$barColor<-ifelse(dfp[,xvar]==highCat,highColor,fillColor)
-				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + geom_bar(fill = dfp$barColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() + 
-						scale_y_continuous(limits=c(0,1),sec.axis = sec_axis(~ . * 100, name="Cumulative Percentage")) +
+				parplot<-ggplot(dfp, aes_string(x=xvar, y="relMetric")) + geom_bar(fill = dfp$barColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() + 
+						scale_y_continuous(limits=c(0,ylim),sec.axis = sec_axis(~ . * 100, name="Cumulative Percentage")) +
 						geom_point(aes_string(x=xvar,y="cumMetric"),color=paretoColor) + geom_line(aes_string(x=xvar,y="cumMetric", group=1),color=paretoColor)
 				
 			}else{	#no highlights
-				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + geom_bar(fill = fillColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() + 
+				parplot<-ggplot(dfp, aes_string(x=xvar, y="relMetric")) + geom_bar(fill = fillColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() + 
 						scale_y_continuous(limits=c(0,1),sec.axis = sec_axis(~ . * 100, name="Cumulative Percentage")) +
 						geom_point(aes_string(x=xvar,y="cumMetric"),color=paretoColor) + geom_line(aes_string(x=xvar,y="cumMetric", group=1),color=paretoColor)
 			}
@@ -701,22 +704,24 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 		if(transposePlot){
 			parplot<-parplot + coord_flip() 
 			if(addYVals){
-				parplot<-parplot  + geom_text(aes(label = dfp[,yvar], y = dfp[,yvar] + max(dfp[,yvar])*0.05),position = position_dodge(0.9),vjust = 0,hjust=0,size=2.8)
+				parplot<-parplot  + geom_text(aes(label = dfp[,yvar], y = dfp[,"relMetric"] + max(dfp[,"relMetric"])*0.05),position = position_dodge(0.9),vjust = 0,hjust=0,size=2.8)
 			}
 		}else{
-			parplot<-parplot + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+			if(xvar=="Area"){parplot<-parplot + theme(axis.text.x = element_text(angle = 45, hjust = 1))}
 			if(addYVals){
-				parplot<-parplot  + geom_text(aes(label = dfp[,yvar], y = dfp[,yvar] + max(dfp[,yvar])*0.05),position = position_dodge(0.9),vjust = 0,size=2.8)
+				parplot<-parplot  + geom_text(aes(label = dfp[,yvar], y = dfp[,"relMetric"] + max(dfp[,"relMetric"])*0.05),position = position_dodge(0.9),vjust = 0,size=2.8)
 			}
 		}
-		
-		
-		
-		
-		
-		if(!is.na(addNote)){ #Add space on the yaxis for the labels if not Pareto
+				
+		if(!is.na(addNote)){ #Add space on the yaxis for the labels 
 			parplot<-parplot + annotate("text", x = nrow(dfp)-1, y = max(dfp[,yvar])*0.8, label = addNote,size=5, hjust=1)
 		}
+		
+		if(!is.na(addStrip)){
+			dfp$stripVal<-addStrip
+			parplot<-parplot + facet_wrap(~dfp$stripVal)
+		}
+		
 	}
 		
 	return(parplot)
