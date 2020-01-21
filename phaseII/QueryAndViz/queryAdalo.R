@@ -210,9 +210,10 @@ p<-makePareto(df=head(resfort[order(-resfort$wgtSumMetric),],10), geopolVal="USF
 #Old Method
 res<-makeQuestion(byComp="species",metric=5,period=1,species="cclo",padusCat="unitName",catValues="all",geopolCat="USFWSregion",geopolValues=6,geopolRestrict=T)
 
-resfort<- fortifyFilterRes(rdf=res, areaCat="unitName", addCat=c("mgrName","desType"), filterByCat=NA, recalcRelAbund=FALSE)
-
-rfa<-subset(resfort,mgrName=="FWS",desType=="National Wildlife Refuge");rfa$Area<-as.character(rfa$Area)
+res1<- fortifyFilterRes(rdf=res, areaCat="unitName", addCat="mgrName", filterByCat=NA, recalcRelAbund=FALSE)
+resfort<-fortifyFilterRes(rdf=res1, areaCat="unitName", addCat="desType", filterByCat=NA, recalcRelAbund=FALSE)
+  
+rfa<-subset(resfort,mgrName=="FWS" & desType=="National Wildlife Refuge");rfa$Area<-as.character(rfa$Area)
 
 rfa<-rfa[order(rfa$wgtSumMetric,decreasing=TRUE),]
 
@@ -306,11 +307,22 @@ res
 res$Area <- getManagerName(res$Area)
 res
 
+## You need to do this to re-aggregate res by the beautified Manager Names
+res<-collapseByArea(res)
+
+## Since we want protected lands, must remove: Unknown and Unprotected
+res<-subset(res,!Area %in% c("Unprotected","Unknown"))
+
 #Plot a Pareto chart
-p2<-makePareto(df=res,includesGeopol="USFWSregion 6", yvar="relArea",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Land Manager",transposePlot=FALSE, fillColor="#0571b0",addYVals=TRUE,addNote=NA,highCat="Fed - FWS",highColor="#ca0020",paretoColor="black")
-p2
+p2<-makePareto(df=res, geopolVal="USFWSregion 6", xvar="Area", yvar="relArea",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Land Manager",transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE, addNote="Protected Lands",highCat=NA,highColor="#ca0020",paretoColor="black"); print(p2)
 
+## Highlight the FWS??
+p2<-makePareto(df=res, geopolVal="USFWSregion 6", xvar="Area", yvar="relArea",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Land Manager",transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE, addNote="Protected Lands",highCat="Fed - FWS",highColor="#ca0020",paretoColor="black"); print(p2)
 
+## Too many categories? Or transpose to see values better?
+p2<-makePareto(df=res, geopolVal="USFWSregion 6", xvar="Area", yvar="relArea",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Land Manager",transposePlot=TRUE,fillColor="#0571b0",addYVals=TRUE, addNote="Protected Lands",highCat="Fed - FWS",highColor="#ca0020",paretoColor="black"); print(p2)
+
+#################### IGNORE OR DELETE STARTING HERE>>>>>>>>>>>>>>>>>>
 #Land Ownership by Area - Protected Lands ----
 #How is land ownership distributed on protected lands within the region of interest?
 
@@ -333,8 +345,7 @@ for (i in 1:length(df$x)){
 # Render Pareto Plot
 p1 <- ggplot(df, aes(x=x, y=y)) + stat_pareto(point.color = "black",point.size = 2, line.color = "black", bars.fill = df$color_scale[order(-df$y)]) + geom_text(aes(label = y[order(-y)] , y = y[order(-y)] + max(res$relArea)*0.05),position = position_dodge(0.9),vjust = 0,size=2.8) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + xlab("PAD-US Land Manager") + ylab("% of Total Area") + annotate("text", x = 6, y = 70, label = "Protected Lands",size=5)
 p1
-
-
+########################### IGNORE OR DELETE ENDING HERE <<<<<<<<<<<<<<<<<<<<<<<<<<
 
 #Empirical Encounter Rate ----
 res<-makeQuestion(byComp="area",metric=4,period=1,species="bais",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=6, geopolRestrict=T)
@@ -345,6 +356,12 @@ res
 res$Area <- getManagerName(res$Area)
 res
 
+## You need to do this to re-aggregate res by the beautified Manager Names
+res<-collapseByArea(res)
+
+p2<-makePareto(df=res, geopolVal="USFWSregion 6", xvar="Area", yvar="avgEncounterRate",barsOnly=TRUE, dataOnly=FALSE, xlabel="PAD-US Land Manager",transposePlot=TRUE,fillColor="#0571b0",addYVals=TRUE, addNote=NA,highCat="Fed - FWS",highColor="#ca0020",paretoColor="black",addStrip="Baird's Sparrow By Land Manager"); print(p2)
+
+#################### IGNORE OR DELETE STARTING HERE>>>>>>>>>>>>>>>>>>
 #Summarize data by Area and Metric
 res <- res %>% 
 		group_by(Area,metric) %>% 
@@ -374,7 +391,7 @@ df <- df[order(-df$y),]
 # Render Plot
 p1_eer <- ggplot(df, aes(x=reorder(x,-y), y=y)) + geom_bar(fill=df$color_scale,colour="black",stat="identity") + geom_text(aes(label=y, y=y+max(res$avgEncounterRate)*0.05),position = position_dodge(0.9),vjust = 0,size=2.5) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + xlab("PAD-US Land Manager") + ylab("Average Empirical Encounter Rate")
 p1_eer
-
+########################### IGNORE OR DELETE ENDING HERE <<<<<<<<<<<<<<<<<<<<<<<<<<
 
 #Base Model Total Abundance Index ----
 res<-makeQuestion(byComp="area",metric=5,period=1,species="bais",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=6)
@@ -383,6 +400,16 @@ res
 #Rename Area manager names
 res$Area <- getManagerName(res$Area)
 
+## You need to do this to re-aggregate res by the beautified Manager Names
+res<-collapseByArea(res)
+
+p2<-makePareto(df=res, geopolVal="USFWSregion 6", xvar="Area", yvar="totalAbundanceIndex",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Land Manager",transposePlot=TRUE,fillColor="#0571b0",addYVals=TRUE, addNote=NA,highCat="Fed - FWS",highColor="#ca0020",paretoColor="black",addStrip="Baird's Sparrow By Land Manager"); print(p2)
+
+## OR not transpose: (Too many categories, removing some values)
+res<-subset(res,relAbundance > 0.1)
+p2<-makePareto(df=res, geopolVal="USFWSregion 6", xvar="Area", yvar="totalAbundanceIndex",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Land Manager",transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE, addNote=NA,highCat="Fed - FWS",highColor="#ca0020",paretoColor="black",xlabAngle=90,addStrip="Baird's Sparrow By Land Manager"); print(p2)
+
+#################### IGNORE OR DELETE STARTING HERE>>>>>>>>>>>>>>>>>>
 #Summarize data by Area and Metric
 res <- res %>% 
 		group_by(Area,metric) %>% 
@@ -408,7 +435,7 @@ for (i in 1:length(df$x)){
 # Render Pareto Plot
 p1_tai <- ggplot(df, aes(x=x, y=z)) + stat_pareto(point.color = "black",point.size = 2, line.color = "black", bars.fill = df$color_scale[order(-df$z)]) + geom_text(aes(label = z[order(-z)] , y = z[order(-z)] + max(df$z)*0.05), position = position_dodge(0.9),vjust = 0,size=2.8) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + xlab("PAD-US Land Manager") + ylab("% Base Model Total Abundance Index")
 p1_tai
-
+########################### IGNORE OR DELETE ENDING HERE <<<<<<<<<<<<<<<<<<<<<<<<<<
 
 #Example 2 ----
 #Compare all land manager types within FWSregion 8, and vs the entire region 8, for trbl during wintering season.
@@ -423,6 +450,17 @@ res
 res$Area <- getManagerName(res$Area)
 res
 
+## You need to do this to re-aggregate res by the beautified Manager Names
+res<-collapseByArea(res)
+
+p2<-makePareto(df=res, geopolVal="USFWSregion 8", xvar="Area", yvar="relArea",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Land Manager",transposePlot=TRUE,fillColor="#0571b0",addYVals=TRUE, addNote="All lands",highCat="Fed - FWS",highColor="#ca0020",paretoColor="black",addStrip="Tricolored Blackbird By Land Manager"); print(p2)
+
+## Since we want protected lands, must remove: Unknown and Unprotected
+res<-subset(res,!Area %in% c("Unprotected","Unknown"))
+
+p2<-makePareto(df=res, geopolVal="USFWSregion 8", xvar="Area", yvar="relArea",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Land Manager",transposePlot=TRUE,fillColor="#0571b0",addYVals=TRUE, addNote="Protected lands",highCat="Fed - FWS",highColor="#ca0020",paretoColor="black",addStrip="Tricolored Blackbird By Land Manager"); print(p2)
+
+#################### IGNORE OR DELETE STARTING HERE>>>>>>>>>>>>>>>>>>
 #Summarize data by Area and Metric
 res <- res %>% 
 		group_by(Area,metric) %>% 
@@ -473,7 +511,7 @@ for (i in 1:length(df$x)){
 # Render Pareto Plot
 p1 <- ggplot(df, aes(x=x, y=y)) + stat_pareto(point.color = "black",point.size = 2, line.color = "black", bars.fill = df$color_scale[order(-df$y)]) + geom_text(aes(label = y[order(-y)] , y = y[order(-y)] + max(res$relArea)*0.05),position = position_dodge(0.9),vjust = 0,size=2.8) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + xlab("PAD-US Land Manager") + ylab("% of Total Area") + annotate("text", x = 6, y = 70, label = "Protected Lands",size=5)
 p1
-
+########################### IGNORE OR DELETE ENDING HERE <<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
 #Empirical Encounter Rate ----
@@ -485,6 +523,12 @@ res
 res$Area <- getManagerName(res$Area)
 res
 
+## You need to do this to re-aggregate res by the beautified Manager Names
+res<-collapseByArea(res)
+
+p2<-makePareto(df=res, geopolVal="USFWSregion 8", xvar="Area", yvar="avgEncounterRate",barsOnly=TRUE, dataOnly=FALSE, xlabel="PAD-US Land Manager",transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE, addNote=NA,highCat="Fed - FWS",highColor="#ca0020",paretoColor="black",addStrip="Tricolored Blackbird By Land Manager"); print(p2)
+
+#################### IGNORE OR DELETE STARTING HERE>>>>>>>>>>>>>>>>>>
 #Summarize data by Area and Metric
 res <- res %>% 
 		group_by(Area,metric) %>% 
@@ -514,7 +558,7 @@ df <- df[order(-df$y),]
 # Render Plot
 p1_eer <- ggplot(df, aes(x=reorder(x,-y), y=y)) + geom_bar(fill=df$color_scale,colour="black",stat="identity") + geom_text(aes(label=y, y=y+max(res$avgEncounterRate)*0.05),position = position_dodge(0.9),vjust = 0,size=2.5) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + xlab("PAD-US Land Manager") + ylab("Average Empirical Encounter Rate")
 p1_eer
-
+########################### IGNORE OR DELETE ENDING HERE <<<<<<<<<<<<<<<<<<<<<<<<<<
 
 #Base Model Total Abundance Index ----
 res<-makeQuestion(byComp="area",metric=4,period=0,species="trbl",padusCat="mgrName",catValues="all",geopolCat="USFWSregion",geopolValues=8)
@@ -523,6 +567,13 @@ res
 #Rename Area manager names
 res$Area <- getManagerName(res$Area)
 
+## You need to do this to re-aggregate res by the beautified Manager Names
+res<-collapseByArea(res)
+
+p2<-makePareto(df=res, geopolVal="USFWSregion 8", xvar="Area", yvar="totalAbundanceIndex",barsOnly=FALSE, dataOnly=FALSE, xlabel="PAD-US Land Manager",transposePlot=FALSE,fillColor="#0571b0",addYVals=TRUE, addNote=NA,highCat="Fed - FWS",highColor="#ca0020",paretoColor="black",addStrip="Tricolored Blackbird By Land Manager"); print(p2)
+
+
+#################### IGNORE OR DELETE STARTING HERE>>>>>>>>>>>>>>>>>>
 #Summarize data by Area and Metric
 res <- res %>% 
 		group_by(Area,metric) %>% 
@@ -548,6 +599,7 @@ for (i in 1:length(df$x)){
 # Render Pareto Plot
 p1_tai <- ggplot(df, aes(x=x, y=z)) + stat_pareto(point.color = "black",point.size = 2, line.color = "black", bars.fill = df$color_scale[order(-df$z)]) + geom_text(aes(label = z[order(-z)] , y = z[order(-z)] + max(df$z)*0.05), position = position_dodge(0.9),vjust = 0,size=2.8) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + xlab("PAD-US Land Manager") + ylab("% Base Model Total Abundance Index")
 p1_tai
+########################### IGNORE OR DELETE ENDING HERE <<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
 #VARIATIONS ON BASIC QUERIES ----
