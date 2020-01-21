@@ -485,7 +485,7 @@ getDictionary<-function(species=FALSE,padus=TRUE,jurisdiction=FALSE){
 	return(dict)
 }
 
-## This function beautifies manager name
+## This function beautifies manager name - customization Per Orien.s request
 # mn is the manager whose name is being beautified
 getManagerName<-function(mn){
 	mn<-as.character(mn)
@@ -508,6 +508,35 @@ getManagerName<-function(mn){
 																	ifelse(mn %in% c("UNK","UNKL"),"Unknown",
 																		mn)))))))))))))))))
 	return(mgrNam)
+}
+
+## This function collapses a data.frame by Area categories, if species is present, then collapses by Area + species
+# df is the data.frame to collapse
+collapseByArea<-function(df){
+	if(TRUE %in% grepl("species",names(df))){
+		cdf<-  df %>% 
+				group_by(Area,species,metric) %>% 
+				dplyr::summarise(sumTCells=sum(sumCells),wgtSumMetric=sum(wgtSumMetric),
+						wgtDensity=round(weighted.mean(wgtDensity,sumCells),3),
+						hectareDensity=round(weighted.mean(hectareDensity,sumCells),5),
+						wgtAbundance=sum(wgtAbundance),
+						presenceHA=sum(presenceHA),
+						AreaSizeHA=sum(AreaSizeHA),
+						relAbundance=sum(relAbundance))
+	}else{
+		cdf<-  df %>% 
+				group_by(Area,metric) %>% 
+				dplyr::summarise(sumTCells=sum(sumCells),wgtSumMetric=sum(wgtSumMetric),
+						wgtDensity=round(weighted.mean(wgtDensity,sumCells),3),
+						hectareDensity=round(weighted.mean(hectareDensity,sumCells),5),
+						wgtAbundance=sum(wgtAbundance),
+						presenceHA=sum(presenceHA),
+						AreaSizeHA=sum(AreaSizeHA),
+						relAbundance=sum(relAbundance))
+	}
+	cdf<-as.data.frame(cdf)
+	names(cdf)<-gsub("sumTCells","sumCells",names(cdf))
+	return(cdf)
 }
 
 ## This function saves the image to the html folder of the server
@@ -638,17 +667,24 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 		
 	dfp<-as.data.frame(dfp)
 	dfp<-dfp[order(dfp[,yvar],decreasing=T),]
+	dfp$stripVal<-addStrip
+	
 	xv<-xvar
-	if(transposePlot){
+	if(transposePlot){ #this must go here, not down below
 		dfp<-orderDFtoPlot(df=dfp,xv=xvar,forFlip=TRUE)
 	}else{
 		dfp<-orderDFtoPlot(df=dfp,xv=xvar,forFlip=FALSE)
 	}
 	
-	
-	
 	if(dataOnly){
-		parplot<-dfp
+		parplot<-dfp[,which(names(dfp)!="plotOrder")]
+		parplot<-dfp[,which(names(dfp)!="stripVal")]
+		if(!is.na(geopolVal) && NROW(geopolVal)==1){
+			names(parplot)<-gsub("totalAbundanceIndex","%_DomainRelative_Abundance_Index",names(parplot))
+			names(parplot)<-gsub("avgEncounterRate","%_DomainRelative_Ecounter_Rate",names(parplot))
+			names(parplot)<-gsub("relArea","%_DomainRelative_Total_Area",names(parplot))
+		}
+		
 	}else{
 		if(!is.na(geopolVal) && NROW(geopolVal)==1){	#conditional to having one geopolVal - must report "% of totals"
 			ylabel<-ifelse(yvar=="totalAbundanceIndex","% Domain-relative Abundance Index",
@@ -658,28 +694,28 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 					ifelse(yvar=="avgEncounterRate","Average Encounter Rate","% Total Area"))
 		}
 		
-		maxy<-max(dfp[,yvar])
 		if(barsOnly){	#no pareto, only bar plot
-			paddedlim<-maxy*1.2
+			#Need ylim for the y-axis limits
+			ylim<-max(dfp[,yvar])*1.2
+			plotYvar<-yvar
 			if(!is.na(highCat)){	#highlighting one category
 				dfp$barColor<-ifelse(dfp[,xvar]==highCat,highColor,fillColor)
 				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + geom_bar(fill = dfp$barColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() +
-						scale_y_continuous(limits=c(0,paddedlim))
+						scale_y_continuous(limits=c(0,ylim))
 			}else{	#no highlights
 				parplot<-ggplot(dfp, aes_string(x=xvar, y=yvar)) + geom_bar(fill = fillColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() +
-						scale_y_continuous(limits=c(0,paddedlim))
+						scale_y_continuous(limits=c(0,ylim))
 			}
-			
 			
 		}else{ # Pareto plot...
 			#Create the cumulative, but ensure first order is by yvar...
 			dfp<-dfp[order(dfp[,yvar],decreasing=T),]
-			dfp$cumMetric<-cumsum(dfp[,yvar])/sum(dfp[,yvar])
+			dfp$cumMetric<-cumsum(dfp[,yvar])*100/sum(dfp[,yvar])
+			#Need the relative metric to plot
+			dfp$relMetric<-round(dfp[,yvar]*100/sum(dfp[,yvar]),3)
+			plotYvar<-"relMetric"
 			#need to reorder again to break ties in cumsum
 			dfp<-dfp[order(dfp$cumMetric,decreasing=F),]
-			dfp$relMetric<-round(dfp[,yvar]/sum(dfp[,yvar]),3)
-			#Need ylim for the y-axis limits
-			ylim<-maxy*1.2
 			
 			if(transposePlot){
 				dfp$plotOrder<-nrow(dfp):1
@@ -692,36 +728,42 @@ makePareto<-function(df, geopolVal=NA, xvar="Area", yvar="totalAbundanceIndex",b
 			if(!is.na(highCat)){	#highlighting one category
 				dfp$barColor<-ifelse(dfp[,xvar]==highCat,highColor,fillColor)
 				parplot<-ggplot(dfp, aes_string(x=xvar, y="relMetric")) + geom_bar(fill = dfp$barColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() + 
-						scale_y_continuous(limits=c(0,ylim),sec.axis = sec_axis(~ . * 100, name="Cumulative Percentage")) +
+						scale_y_continuous(limits=c(0,101),sec.axis = sec_axis(~ ., name="Cumulative Percentage")) +
 						geom_point(aes_string(x=xvar,y="cumMetric"),color=paretoColor) + geom_line(aes_string(x=xvar,y="cumMetric", group=1),color=paretoColor)
 				
 			}else{	#no highlights
 				parplot<-ggplot(dfp, aes_string(x=xvar, y="relMetric")) + geom_bar(fill = fillColor, stat="identity") + labs(x=xlabel,y=ylabel) + theme_bw() + 
-						scale_y_continuous(limits=c(0,1),sec.axis = sec_axis(~ . * 100, name="Cumulative Percentage")) +
+						scale_y_continuous(limits=c(0,101),sec.axis = sec_axis(~ ., name="Cumulative Percentage")) +
 						geom_point(aes_string(x=xvar,y="cumMetric"),color=paretoColor) + geom_line(aes_string(x=xvar,y="cumMetric", group=1),color=paretoColor)
 			}
 			
 		}
+		
 		## Beautifying...
 		if(transposePlot){
 			parplot<-parplot + coord_flip() 
 			if(addYVals){
-				parplot<-parplot  + geom_text(aes(label = dfp[,yvar], y = dfp[,"relMetric"] + max(dfp[,"relMetric"])*0.05),position = position_dodge(0.9),vjust = 0,hjust=0,size=2.8)
+				parplot<-parplot  + geom_text(aes(label = dfp[,plotYvar], y = dfp[,plotYvar] + max(dfp[,plotYvar])*0.05),position = position_dodge(0.9),vjust = 0,hjust=0,size=2.8)
 			}
 		}else{
 			if(xvar=="Area"){parplot<-parplot + theme(axis.text.x = element_text(angle = xlabAngle, hjust = 1))}
 			if(addYVals){
-				parplot<-parplot  + geom_text(aes(label = dfp[,yvar], y = dfp[,"relMetric"] + max(dfp[,"relMetric"])*0.05),position = position_dodge(0.9),vjust = 0,size=2.8)
+				parplot<-parplot  + geom_text(aes(label = dfp[,plotYvar], y = dfp[,plotYvar] + max(dfp[,plotYvar])*0.05),position = position_dodge(0.9),vjust = 0,size=2.8)
 			}
 		}
 				
 		if(!is.na(addNote)){ #Add space on the yaxis for the labels 
-			parplot<-parplot + annotate("text", x = nrow(dfp)-1, y = max(dfp[,yvar])*0.8, label = addNote,size=5, hjust=1)
+			if(transposePlot){
+				ypos<-ifelse(barsOnly,max(dfp[,plotYvar])*0.5,50)
+				parplot<-parplot + annotate("text", x = 2, y = ypos, label = addNote,size=5, hjust=0.5)
+			}else{
+				ypos<-ifelse(barsOnly,max(dfp[,plotYvar])*0.8,50)
+				parplot<-parplot + annotate("text", x = nrow(dfp)-1, y = ypos, label = addNote,size=5, hjust=1)	
+			}
 		}
 		
 		if(!is.na(addStrip)){
-			dfp$stripVal<-addStrip
-			parplot<-parplot + facet_wrap(~dfp$stripVal)
+			parplot<-parplot + facet_wrap(~stripVal)
 		}
 		
 	}
